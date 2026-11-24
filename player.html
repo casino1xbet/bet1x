@@ -3,178 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VIP 3D Blackjack</title>
+    <title>MLBB Parlay Arena - Player</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        body { 
-            background: #0a1118 url('https://www.transparenttextures.com/patterns/stardust.png');
-            color: #fff; display: flex; justify-content: center; align-items: center; 
-            height: 100vh; overflow: hidden; perspective: 1200px;
-        }
-        .game-container { width: 100%; max-width: 600px; height: 100vh; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-
-        .top-ui { position: absolute; top: 0; width: 100%; padding: 15px; z-index: 50; display: flex; justify-content: space-between; align-items: flex-start;}
-        .player-info { background: rgba(0,0,0,0.7); border: 1px solid #d4af37; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;}
-        .btn-refresh { background: #d4af37; color: #000; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-weight: bold; font-size: 14px;}
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: #090d16; color: #f8fafc; padding-bottom: 90px; }
         
-        .tourney-box { background: linear-gradient(to bottom, #0f2a45, #081626); border: 2px solid #5a7c99; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
-        .tourney-box span { color: #38bdf8; font-weight: bold; font-size: 1.1rem;}
+        /* AUTH MODAL */
+        .modal { position: fixed; inset: 0; background: rgba(6, 9, 19, 0.96); z-index: 200; display: flex; justify-content: center; align-items: center; padding: 15px; }
+        .modal-box { background: #111827; border: 1px solid #1e293b; padding: 28px 22px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .modal-box h2 { font-size: 1.4rem; color: #38bdf8; margin-bottom: 6px; text-align: center; }
+        .modal-box p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; text-align: center; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 4px; }
+        .input-group input, .input-group select { width: 100%; padding: 11px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 0.9rem; outline: none; }
+        .input-group input:focus { border-color: #38bdf8; }
+        .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.95rem; margin-top: 6px; }
+        .btn-google { width: 100%; padding: 11px; background: #fff; color: #1e293b; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+        .toggle-auth { text-align: center; margin-top: 14px; font-size: 0.85rem; color: #94a3b8; }
+        .toggle-auth span { color: #38bdf8; cursor: pointer; font-weight: 600; }
 
-        .table-wrapper { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95vw; max-width: 600px; height: 500px; z-index: 10; }
-        .table-3d {
-            width: 100%; height: 100%; border-radius: 50% / 40%;
-            background: #0b4f6c; border: 25px solid #3b2110;
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 0 0 6px #1a1a1a, 0 30px 60px rgba(0,0,0,0.9);
-            transform: rotateX(25deg); position: relative; overflow: hidden;
-        }
-        .table-svg { position: absolute; width: 100%; height: 100%; top:0; left:0; pointer-events: none; opacity: 0.3;}
-        .dealer-zone { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .player-zone { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .score-badge { background: rgba(0,0,0,0.7); padding: 4px 15px; border-radius: 15px; color: #fff; font-weight: bold; font-size: 1.1rem; display: inline-block; border: 1px solid #555; }
-        .cards-wrapper { display: flex; justify-content: center; height: 110px; position: relative; width: 200px; margin: 0 auto; }
+        /* TOP NAVBAR */
+        .navbar { background: #111827; border-bottom: 1px solid #1e293b; padding: 12px 16px; position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-weight: 800; font-size: 1.05rem; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        .wallet-box { display: flex; align-items: center; gap: 8px; background: #0f172a; border: 1px solid #334155; padding: 5px 10px; border-radius: 20px; }
+        .balance-text { font-weight: 700; color: #4ade80; font-size: 0.9rem; }
+        .btn-icon-sm { background: #1e293b; color: #38bdf8; border: 1px solid #334155; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 
-        .card { 
-            width: 75px; height: 110px; background: #fff; border-radius: 5px; position: absolute;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.6); border: 1px solid #999;
-            display: flex; flex-direction: column; justify-content: space-between; padding: 5px;
-            font-weight: bold; font-size: 1.2rem; transform: rotateX(-25deg); transition: all 0.4s ease-out;
-        }
-        .card.red { color: #d32f2f; } .card.black { color: #111; }
-        .card-back { background: repeating-linear-gradient(45deg, #b91c1c, #b91c1c 5px, #7f1d1d 5px, #7f1d1d 10px); border: 2px solid #fff; }
+        /* WALLET ACTION BAR */
+        .action-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 12px 16px; background: #0d1320; border-bottom: 1px solid #1e293b; }
+        .strip-btn { padding: 9px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-depo { background: #16a34a; color: #fff; }
+        .btn-wd { background: #ea580c; color: #fff; }
+        .btn-hist { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
 
-        .table-bet-area { position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
-        .chip-stack { width: 35px; height: 35px; border-radius: 50%; background: #eab308; border: 3px dashed #fff;
-            box-shadow: 0 3px 0 #854d0e, 0 6px 0 #854d0e, 0 9px 10px rgba(0,0,0,0.8); transform: rotateX(-25deg); }
+        /* CONTAINER & MATCH CARD */
+        .container { max-width: 720px; margin: 0 auto; padding: 14px; }
+        .section-title { font-size: 0.95rem; font-weight: 700; color: #cbd5e1; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .match-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+        .match-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
+        .status-badge { padding: 2px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; font-size: 0.7rem; }
+        .status-upcoming { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        .status-live { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .status-closed { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
 
-        .card-shoe { position: absolute; top: 5%; right: 15%; width: 60px; height: 90px; background: linear-gradient(to right, #ddd, #fff); transform: rotateX(-25deg) rotateZ(15deg); border-radius: 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+        .teams-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .team-box { display: flex; flex-direction: column; align-items: center; width: 40%; text-align: center; }
+        .team-logo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #1e293b; border: 2px solid #334155; margin-bottom: 6px; }
+        .team-name { font-weight: 700; font-size: 0.92rem; }
+        .vs-tag { font-weight: 800; color: #64748b; font-size: 0.9rem; }
+
+        /* MARKETS & ODDS */
+        .market-block { background: #0b101b; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; margin-top: 8px; }
+        .market-title { font-size: 0.78rem; color: #94a3b8; font-weight: 600; margin-bottom: 8px; }
+        .odds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; }
+        .odd-btn { background: #161f33; border: 1px solid #293548; border-radius: 6px; padding: 8px 6px; color: #f8fafc; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.15s; }
+        .odd-btn:hover { border-color: #38bdf8; }
+        .odd-btn.selected { background: #0284c7; border-color: #7dd3fc; color: #fff; }
+        .odd-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .odd-label { font-size: 0.75rem; color: #cbd5e1; margin-bottom: 2px; text-align: center; }
+        .odd-btn.selected .odd-label { color: #fff; }
+        .odd-val { font-weight: 800; font-size: 0.9rem; color: #fbbf24; }
+        .odd-btn.selected .odd-val { color: #fff; }
+
+        /* PARLAY SLIP BAR */
+        .slip-fab { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: linear-gradient(135deg, #1d4ed8, #0284c7); color: #fff; padding: 13px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(2, 132, 199, 0.5); z-index: 90; cursor: pointer; font-weight: 700; }
+        .slip-drawer { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 150; display: none; justify-content: center; align-items: flex-end; }
+        .slip-content { background: #111827; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 20px; max-height: 88vh; overflow-y: auto; border-top: 1px solid #334155; }
+        .slip-item { background: #0f172a; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .remove-pick { color: #f87171; background: none; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; padding: 4px; }
+
+        /* QRIS & SUBMODALS */
+        .qris-box { background: #fff; padding: 12px; border-radius: 12px; text-align: center; margin: 12px 0; }
+        .qris-box img { width: 210px; height: 210px; object-fit: contain; }
+        .preset-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .preset-btn { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 7px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
         
-        .bottom-panel { position: absolute; bottom: 0; width: 100%; padding: 15px; z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 10px;}
-        .avatar-container { position: relative; margin-bottom: -10px; z-index: 60; text-align: center;}
-        .avatar { width: 60px; height: 60px; background: #4b5563 center/cover; border-radius: 50%; border: 3px solid #38bdf8; margin: 0 auto;}
-        .avatar-name { background: rgba(0,0,0,0.8); padding: 3px 15px; border-radius: 10px; font-size: 0.8rem; margin-top: -10px; position: relative; border: 1px solid #555;}
-
-        .chip-selector { display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; }
-        .ui-chip { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; cursor: pointer; border: 3px dashed #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.8); font-size: 0.9rem; transition: 0.1s;}
-        .ui-chip:active { transform: translateY(5px); box-shadow: none;}
-        .ui-chip.active { border: 3px solid #38bdf8; transform: scale(1.1); }
-        .c1k { background: #6b21a8; } .c5k { background: #b45309; } .c10k { background: #15803d; }
-
-        .action-bar { display: flex; width: 100%; gap: 5px; background: rgba(0,0,0,0.8); padding: 5px; border-radius: 10px; border: 1px solid #333;}
-        .btn-action { flex: 1; padding: 15px 5px; border: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; color: #fff; transition: 0.2s; display: flex; justify-content: center; align-items: center;}
-        .btn-deal { background: linear-gradient(to bottom, #0ea5e9, #0369a1); border: 1px solid #38bdf8; }
-        .btn-hit { background: linear-gradient(to bottom, #22c55e, #15803d); border: 1px solid #4ade80; }
-        .btn-stand { background: linear-gradient(to bottom, #ef4444, #b91c1c); border: 1px solid #f87171; }
-        .btn-clear { background: linear-gradient(to bottom, #64748b, #334155); border: 1px solid #94a3b8; }
-        .btn-action:disabled { background: #1e293b; color: #475569; border: 1px solid #334155; cursor: not-allowed;}
-        .btn-icon { width: 50px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; cursor: pointer;}
-
-        /* LOGIN */
-        .modal { position: fixed; inset: 0; background: #f0f4f9; z-index: 100; display: flex; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; padding: 40px 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); text-align: center; color: #202124; }
-        .modal-box h2 { font-size: 24px; font-weight: 500; margin-bottom: 8px; }
-        .modal-box p { font-size: 14px; color: #5f6368; margin-bottom: 24px; }
-        .login-btn { width: 100%; padding: 12px; border-radius: 24px; border: 1px solid #dadce0; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
-        .login-btn:hover { background: #f8f9fa; }
-        .login-btn.google { color: #3c4043; }
-        .login-btn.facebook { background: #1877f2; color: white; border: none; }
-        .login-btn.email { background: #1a73e8; color: white; border: none; }
-        .divider { display: flex; align-items: center; margin: 20px 0; color: #5f6368; font-size: 13px; }
-        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #dadce0; }
-        .divider span { padding: 0 12px; }
-        .email-form { display: none; text-align: left; }
-        .email-form input { width: 100%; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; }
-        .email-form button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 24px; font-weight: 500; cursor: pointer; margin-top: 8px; }
-        .back-btn { background: none; border: none; color: #1a73e8; font-size: 14px; cursor: pointer; margin-top: 16px; }
-        .error-msg { color: #d93025; font-size: 13px; margin-top: 8px; display: none; }
+        /* TICKET HISTORY */
+        .ticket-card { background: #111827; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; margin-bottom: 10px; font-size: 0.85rem; }
+        .badge-win { color: #4ade80; font-weight: 700; }
+        .badge-lose { color: #f87171; font-weight: 700; }
+        .badge-pending { color: #fbbf24; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- AUTH MODAL (WAJIB DAFTAR / LOGIN) -->
 <div class="modal" id="authModal">
     <div class="modal-box">
-        <div style="font-size: 40px; margin-bottom: 10px;">♠️</div>
-        <h2>Masuk ke VIP Casino</h2>
-        <p>Gunakan akun Google, Facebook, atau Email</p>
+        <h2>⚔️ MLBB PARLAY ARENA</h2>
+        <p id="authSubtitle">Daftar akun pemain baru sebelum masuk ke arena</p>
 
-        <div id="providerButtons">
-            <button class="login-btn google" onclick="loginWithGoogle()">
-                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                Lanjutkan dengan Google
-            </button>
-            <button class="login-btn facebook" onclick="loginWithFacebook()">
-                Lanjutkan dengan Facebook
-            </button>
-            <div class="divider"><span>atau</span></div>
-            <button class="login-btn email" onclick="showEmailForm()">Lanjutkan dengan Email</button>
+        <button class="btn-google" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+            Lanjutkan dengan Google
+        </button>
+
+        <div id="registerFields">
+            <div class="input-group">
+                <label>Username / Nickname MLBB</label>
+                <input type="text" id="regName" placeholder="Contoh: RRQ_Lemon">
+            </div>
+            <div class="input-group">
+                <label>Nomor WhatsApp / Dana / E-Wallet</label>
+                <input type="text" id="regPhone" placeholder="0812xxxxxxxx">
+            </div>
         </div>
 
-        <div class="email-form" id="emailForm">
-            <input type="email" id="emailInput" placeholder="Email">
-            <input type="password" id="passwordInput" placeholder="Password">
-            <button onclick="loginWithEmail()">Masuk / Daftar</button>
-            <button class="back-btn" onclick="hideEmailForm()">← Kembali</button>
-            <div class="error-msg" id="errorMsg"></div>
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="authEmail" placeholder="email@contoh.com">
+        </div>
+        <div class="input-group">
+            <label>Password (min. 6 karakter)</label>
+            <input type="password" id="authPass" placeholder="••••••••">
+        </div>
+
+        <button class="btn-primary" id="authSubmitBtn" onclick="handleEmailAuth()">Daftar & Masuk</button>
+        <div class="toggle-auth" id="authToggleText">
+            Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>
         </div>
     </div>
 </div>
 
-<div class="game-container" id="gameContainer" style="display:none;">
-    <div class="top-ui">
-        <div class="player-info">
-            <span id="balanceDisplay">Rp 0</span>
-            <button class="btn-refresh" onclick="refreshBalance()" title="Refresh Saldo">🔄</button>
-        </div>
-        <div class="tourney-box">
-            <div style="font-size: 0.7rem; color:#aaa;">Turnamen Bintang</div>
-            <span id="playerNameDisplay">Guest</span>
-            <div style="font-size: 0.7rem; color:#fbbf24;" id="scoreDisplay">🪙 0</div>
+<!-- MAIN APP -->
+<div id="appContent" style="display:none;">
+    <div class="navbar">
+        <div class="brand">⚔️ MLBB PARLAY</div>
+        <div class="wallet-box">
+            <span class="balance-text" id="balanceDisplay">Rp 0</span>
+            <button class="btn-icon-sm" onclick="refreshBalance()" title="Refresh Saldo">🔄</button>
+            <button class="btn-icon-sm" onclick="logout()" title="Keluar" style="color:#f87171;">🚪</button>
         </div>
     </div>
 
-    <div class="table-wrapper">
-        <div class="table-3d">
-            <svg class="table-svg" viewBox="0 0 600 500">
-                <path d="M 50 250 A 250 150 0 0 0 550 250" fill="none" stroke="#fff" stroke-width="2" />
-                <path d="M 100 250 A 200 100 0 0 0 500 250" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="5,5" />
-                <path id="arc1" d="M 150 200 A 150 100 0 0 0 450 200" fill="none" />
-                <text font-size="16" fill="#fff" font-weight="bold" font-family="serif">
-                    <textPath href="#arc1" startOffset="50%" text-anchor="middle">BLACKJACK PAYS 3 TO 2</textPath>
-                </text>
-            </svg>
-            <div class="dealer-zone">
-                <div class="score-badge" id="dealerScore">0</div>
-                <div class="cards-wrapper" id="dealerCards"></div>
-            </div>
-            <div class="card-shoe"></div>
-            <div class="table-bet-area" id="tableBets"></div>
-            <div class="player-zone">
-                <div class="cards-wrapper" id="playerCards"></div>
-                <div class="score-badge" id="playerScore" style="margin-top: 5px;">0</div>
-            </div>
-        </div>
+    <div class="action-strip">
+        <button class="strip-btn btn-depo" onclick="openModal('depoModal')">+ Deposit</button>
+        <button class="strip-btn btn-wd" onclick="openModal('wdModal')">- Withdraw</button>
+        <button class="strip-btn btn-hist" onclick="switchTab()">📜 Riwayat Tiket</button>
     </div>
 
-    <div class="bottom-panel">
-        <div class="avatar-container">
-            <div class="avatar" id="avatarImg"></div>
-            <div class="avatar-name"><span id="bottomPlayerName">Guest</span> <br> 🪙 <span id="bottomBalance">0</span></div>
+    <div class="container" id="matchesSection">
+        <div class="section-title">
+            <span>🔥 Jadwal Pertandingan MLBB</span>
+            <span style="font-size:0.75rem; color:#38bdf8;" id="userGreeting">Player</span>
         </div>
-        <div class="chip-selector">
-            <div class="ui-chip c1k" onclick="selectBet(1000, this)">1K</div>
-            <div class="ui-chip c5k active" onclick="selectBet(5000, this)">5K</div>
-            <div class="ui-chip c10k" onclick="selectBet(10000, this)">10K</div>
+        <div id="matchList">Memuat jadwal pertandingan...</div>
+    </div>
+
+    <div class="container" id="historySection" style="display:none;">
+        <div class="section-title">
+            <span>📜 Riwayat Parlay & Transaksi</span>
+            <button onclick="switchTab()" style="background:#1e293b; color:#38bdf8; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">← Kembali ke Jadwal</button>
         </div>
-        <div class="action-bar">
-            <button class="btn-action btn-clear" onclick="clearBet()" id="btnClear">BERSIHKAN</button>
-            <button class="btn-action btn-deal" id="btnDeal" onclick="startGame()" disabled>PASANG</button>
-            <button class="btn-action btn-hit" id="btnHit" onclick="playerHit()" style="display:none;">HIT</button>
-            <button class="btn-action btn-stand" id="btnStand" onclick="playerStand()" style="display:none;">STAND</button>
-            <div class="btn-icon" onclick="logout()" title="Keluar">🚪</div>
+        <div id="ticketList">Memuat riwayat...</div>
+    </div>
+</div>
+
+<!-- SLIP PARLAY FAB -->
+<div class="slip-fab" id="slipFab" onclick="openModal('slipDrawer')">
+    <span>🎯 Slip Pilihan (<span id="slipCount">0</span> Tim/Market)</span>
+    <span>Total Kali: <span id="slipTotalOdds">1.00</span>x ▲</span>
+</div>
+
+<!-- SLIP DRAWER -->
+<div class="slip-drawer" id="slipDrawer">
+    <div class="slip-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3>🎟️ Tiket Parlay MLBB</h3>
+            <button onclick="closeModal('slipDrawer')" style="background:none; border:none; color:#94a3b8; font-size:1.3rem; cursor:pointer;">✕</button>
         </div>
+        <div id="slipItemsContainer"></div>
+        <div style="background:#0f172a; padding:12px; border-radius:10px; margin-top:12px; border:1px solid #1e293b;">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:8px;">
+                <span>Total Perkalian (Odds):</span>
+                <strong style="color:#fbbf24;" id="drawerOdds">1.00x</strong>
+            </div>
+            <div class="input-group">
+                <label>Nominal Pasang (Min. Rp 5.000)</label>
+                <input type="number" id="betAmount" value="10000" min="5000" oninput="calcPotentialWin()">
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:8px;">
+                <span>Potensi Menang:</span>
+                <strong style="color:#4ade80;" id="potentialWin">Rp 0</strong>
+            </div>
+        </div>
+        <button class="btn-primary" style="margin-top:14px;" onclick="placeParlayBet()">PASANG PARLAY SEKARANG</button>
+    </div>
+</div>
+
+<!-- DEPOSIT MODAL (QRIS + BUKTI TF) -->
+<div class="modal" id="depoModal" style="display:none;">
+    <div class="modal-box" style="max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="color:#4ade80;">💳 Deposit QRIS</h3>
+            <button onclick="closeModal('depoModal')" style="background:none; border:none; color:#94a3b8; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <p style="text-align:left; margin-bottom:10px;">Minimal deposit <strong>Rp 10.000</strong>. Scan QRIS di bawah lalu unggah bukti transfer.</p>
+        
+        <div class="preset-row">
+            <button class="preset-btn" onclick="setDepo(10000)">10rb</button>
+            <button class="preset-btn" onclick="setDepo(25000)">25rb</button>
+            <button class="preset-btn" onclick="setDepo(50000)">50rb</button>
+            <button class="preset-btn" onclick="setDepo(100000)">100rb</button>
+        </div>
+
+        <div class="input-group">
+            <label>Nominal Deposit (Rp)</label>
+            <input type="number" id="depoAmount" value="10000" min="10000">
+        </div>
+
+        <div class="qris-box">
+            <div style="color:#0f172a; font-weight:800; font-size:0.9rem; margin-bottom:4px;">QRIS PEMBAYARAN RESMI</div>
+            <!-- QRIS Image terpasang -->
+            <img id="qrisImage" src="1000490831.jpg" alt="QRIS Pembayaran">
+            <div style="color:#475569; font-size:0.72rem; margin-top:4px;">Scan menggunakan Dana, OVO, GoPay, ShopeePay, atau Mobile Banking</div>
+        </div>
+
+        <div class="input-group">
+            <label>Upload Bukti Transfer (Screenshot/Foto)</label>
+            <input type="file" id="depoProof" accept="image/*">
+        </div>
+
+        <button class="btn-primary" id="btnSubmitDepo" onclick="submitDeposit()">Kirim Bukti Deposit</button>
+    </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div class="modal" id="wdModal" style="display:none;">
+    <div class="modal-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="color:#fb923c;">💸 Penarikan Saldo (Withdraw)</h3>
+            <button onclick="closeModal('wdModal')" style="background:none; border:none; color:#94a3b8; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>
+        <div class="input-group">
+            <label>Nominal Withdraw (Min. Rp 20.000)</label>
+            <input type="number" id="wdAmount" value="20000" min="20000">
+        </div>
+        <div class="input-group">
+            <label>Metode Tujuan (DANA / OVO / GOPAY / BCA / BRI)</label>
+            <input type="text" id="wdMethod" placeholder="Contoh: DANA">
+        </div>
+        <div class="input-group">
+            <label>Nomor Rekening / E-Wallet & Atas Nama</label>
+            <input type="text" id="wdAccount" placeholder="0812xxxx a/n Budi">
+        </div>
+        <button class="btn-primary" style="background:#ea580c;" onclick="submitWithdraw()">Ajukan Withdraw</button>
     </div>
 </div>
 
@@ -193,82 +269,50 @@
     const db = firebase.firestore();
 
     let currentUser = null;
-    let balance = 0;
-    let currentBet = 5000;
-    let isPlaying = false;
-    let playerHand = [];
-    let dealerHand = [];
-    let targetOutcome = "random";
-    let is1v1 = false;
-    let forcedDealerCards = [];
+    let userData = null;
+    let isRegisterMode = true;
+    let matchesCache = [];
+    let slipPicks = []; // { matchId, matchTitle, marketId, marketName, optionId, optionLabel, odds }
 
-    const suits = ['♠', '♥', '♦', '♣'];
-    const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-
-    // ===== AUTH =====
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user;
-            await ensureUserData(user);
-            showGame();
-        } else {
-            document.getElementById('authModal').style.display = 'flex';
-            document.getElementById('gameContainer').style.display = 'none';
-        }
-    });
-
-    async function ensureUserData(user) {
-        const userRef = db.collection("users").doc(user.uid);
-        const doc = await userRef.get();
-        
-        if (!doc.exists) {
-            await userRef.set({
-                uid: user.uid,
-                email: user.email || "",
-                displayName: user.displayName || user.email?.split('@')[0] || "Player",
-                photoURL: user.photoURL || "",
-                balance: 100000,
-                provider: user.providerData[0]?.providerId || "password",
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                forcedOutcome: "random",
-                is1v1: false,
-                forcedDealerCards: [],
-                stats: { win: 0, lose: 0, push: 0, totalBet: 0, totalWin: 0 }
-            });
-            balance = 100000;
-        } else {
-            const data = doc.data();
-            balance = data.balance || 0;
-            await userRef.update({ lastLogin: firebase.firestore.FieldValue.serverTimestamp() });
-        }
+    // ===== AUTHENTICATION =====
+    function toggleAuthMode() {
+        isRegisterMode = !isRegisterMode;
+        document.getElementById('registerFields').style.display = isRegisterMode ? 'block' : 'none';
+        document.getElementById('authSubtitle').innerText = isRegisterMode ? 'Daftar akun pemain baru sebelum masuk ke arena' : 'Masuk ke akun pemain Anda';
+        document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Daftar & Masuk' : 'Masuk';
+        document.getElementById('authToggleText').innerHTML = isRegisterMode 
+            ? 'Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>' 
+            : 'Belum punya akun? <span onclick="toggleAuthMode()">Daftar sekarang</span>';
     }
 
-    function showGame() {
-        document.getElementById('authModal').style.display = 'none';
-        document.getElementById('gameContainer').style.display = 'block';
-        document.getElementById('btnDeal').disabled = false;
+    async function handleEmailAuth() {
+        const email = document.getElementById('authEmail').value.trim();
+        const pass = document.getElementById('authPass').value;
+        const name = document.getElementById('regName').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
 
-        const name = currentUser.displayName || currentUser.email?.split('@')[0] || "Player";
-        document.getElementById('playerNameDisplay').innerText = name;
-        document.getElementById('bottomPlayerName').innerText = name;
+        if (!email || !pass) return alert("Email dan password wajib diisi!");
 
-        if (currentUser.photoURL) {
-            document.getElementById('avatarImg').style.backgroundImage = `url('${currentUser.photoURL}')`;
-        } else {
-            document.getElementById('avatarImg').style.backgroundImage = `url('https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.uid}')`;
-        }
-
-        updateBalance();
-
-        // Realtime
-        db.collection("users").doc(currentUser.uid).onSnapshot((doc) => {
-            if (doc.exists) {
-                const data = doc.data();
-                balance = data.balance || 0;
-                updateBalance();
+        try {
+            if (isRegisterMode) {
+                if (!name || !phone) return alert("Username dan Nomor HP/E-Wallet wajib diisi saat mendaftar!");
+                const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                await cred.user.updateProfile({ displayName: name });
+                await db.collection("users").doc(cred.user.uid).set({
+                    uid: cred.user.uid,
+                    email: email,
+                    displayName: name,
+                    phone: phone,
+                    balance: 0,
+                    role: "player",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } else {
+                await auth.signInWithEmailAndPassword(email, pass);
             }
-        });
+        } catch (err) {
+            alert("Gagal: " + err.message);
+        }
     }
 
     function loginWithGoogle() {
@@ -276,307 +320,390 @@
         auth.signInWithPopup(provider).catch(err => alert(err.message));
     }
 
-    function loginWithFacebook() {
-        const provider = new firebase.auth.FacebookAuthProvider();
-        auth.signInWithPopup(provider).catch(err => alert(err.message));
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            const userRef = db.collection("users").doc(user.uid);
+            const snap = await userRef.get();
+            if (!snap.exists) {
+                await userRef.set({
+                    uid: user.uid,
+                    email: user.email || "",
+                    displayName: user.displayName || user.email.split('@')[0],
+                    phone: "",
+                    balance: 0,
+                    role: "player",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            listenUserRealtime();
+            listenMatchesRealtime();
+        } else {
+            document.getElementById('authModal').style.display = 'flex';
+            document.getElementById('appContent').style.display = 'none';
+        }
+    });
+
+    function logout() {
+        if (confirm("Keluar dari akun?")) auth.signOut();
     }
 
-    function showEmailForm() {
-        document.getElementById('providerButtons').style.display = 'none';
-        document.getElementById('emailForm').style.display = 'block';
-    }
-    function hideEmailForm() {
-        document.getElementById('providerButtons').style.display = 'block';
-        document.getElementById('emailForm').style.display = 'none';
-        document.getElementById('errorMsg').style.display = 'none';
+    // ===== REALTIME USER & BALANCE =====
+    function listenUserRealtime() {
+        db.collection("users").doc(currentUser.uid).onSnapshot((doc) => {
+            if (doc.exists) {
+                userData = doc.data();
+                document.getElementById('balanceDisplay').innerText = "Rp " + (userData.balance || 0).toLocaleString('id-ID');
+                document.getElementById('userGreeting').innerText = "👤 " + (userData.displayName || "Player");
+            }
+        });
     }
 
-    function loginWithEmail() {
-        const email = document.getElementById('emailInput').value.trim();
-        const password = document.getElementById('passwordInput').value;
-        const errorEl = document.getElementById('errorMsg');
+    async function refreshBalance() {
+        const doc = await db.collection("users").doc(currentUser.uid).get();
+        if (doc.exists) {
+            userData = doc.data();
+            document.getElementById('balanceDisplay').innerText = "Rp " + (userData.balance || 0).toLocaleString('id-ID');
+            alert("Saldo diperbarui: Rp " + (userData.balance || 0).toLocaleString('id-ID'));
+        }
+    }
 
-        if (!email || !password) {
-            errorEl.innerText = "Email dan password wajib diisi";
-            errorEl.style.display = 'block';
+    // ===== REALTIME MLBB MATCHES =====
+    function listenMatchesRealtime() {
+        db.collection("mlbb_matches").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+            matchesCache = [];
+            snapshot.forEach(doc => matchesCache.push({ id: doc.id, ...doc.data() }));
+            renderMatches();
+        });
+    }
+
+    function renderMatches() {
+        const container = document.getElementById('matchList');
+        const activeMatches = matchesCache.filter(m => m.status !== 'finished');
+
+        if (activeMatches.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Belum ada jadwal pertandingan aktif.</div>`;
             return;
         }
 
-        auth.signInWithEmailAndPassword(email, password)
-            .catch(() => {
-                auth.createUserWithEmailAndPassword(email, password)
-                    .catch(err => {
-                        errorEl.innerText = err.message;
-                        errorEl.style.display = 'block';
-                    });
-            });
+        container.innerHTML = activeMatches.map(match => {
+            const isClosed = match.status === 'closed';
+            const statusClass = match.status === 'live' ? 'status-live' : (isClosed ? 'status-closed' : 'status-upcoming');
+            const statusLabel = match.status === 'live' ? '🔴 LIVE' : (isClosed ? '🔒 PICK DITUTUP' : '🕒 UPCOMING');
+
+            const marketsHtml = (match.markets || []).map((mkt, mIdx) => {
+                const optionsHtml = (mkt.options || []).map((opt, oIdx) => {
+                    const isSelected = slipPicks.some(p => p.matchId === match.id && p.marketIdx === mIdx && p.optionIdx === oIdx);
+                    return `
+                        <button class="odd-btn ${isSelected ? 'selected' : ''}" 
+                                ${isClosed ? 'disabled' : ''} 
+                                onclick="togglePick('${match.id}', ${mIdx}, ${oIdx})">
+                            <span class="odd-label">${opt.label}</span>
+                            <span class="odd-val">${Number(opt.odds).toFixed(2)}x</span>
+                        </button>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="market-block">
+                        <div class="market-title">📌 ${mkt.title}</div>
+                        <div class="odds-grid">${optionsHtml}</div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="match-card">
+                    <div class="match-meta">
+                        <span>🏆 ${match.tournament || 'MLBB Tournament'} • ${match.schedule || ''}</span>
+                        <span class="status-badge ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="teams-row">
+                        <div class="team-box">
+                            <img class="team-logo" src="${match.teamALogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + match.teamA}" onerror="this.src='https://api.dicebear.com/7.x/identicon/svg?seed=A'">
+                            <div class="team-name">${match.teamA}</div>
+                        </div>
+                        <div class="vs-tag">VS</div>
+                        <div class="team-box">
+                            <img class="team-logo" src="${match.teamBLogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + match.teamB}" onerror="this.src='https://api.dicebear.com/7.x/identicon/svg?seed=B'">
+                            <div class="team-name">${match.teamB}</div>
+                        </div>
+                    </div>
+                    ${marketsHtml}
+                </div>
+            `;
+        }).join('');
     }
 
-    function logout() {
-        if (confirm("Keluar dari permainan?")) auth.signOut();
-    }
+    // ===== PARLAY SLIP LOGIC =====
+    function togglePick(matchId, marketIdx, optionIdx) {
+        const match = matchesCache.find(m => m.id === matchId);
+        if (!match || match.status === 'closed' || match.status === 'finished') return;
 
-    function updateBalance() { 
-        document.getElementById('balanceDisplay').innerText = "Rp " + balance.toLocaleString('id-ID'); 
-        document.getElementById('bottomBalance').innerText = balance.toLocaleString('id-ID');
-        document.getElementById('scoreDisplay').innerText = "🪙 " + Math.floor(balance/1000);
-    }
+        const market = match.markets[marketIdx];
+        const option = market.options[optionIdx];
 
-    function refreshBalance() {
-        db.collection("users").doc(currentUser.uid).get().then((doc) => {
-            if (doc.exists) {
-                balance = doc.data().balance || 0;
-                updateBalance();
-                alert("Saldo berhasil di-refresh!");
-            }
-        });
-    }
-
-    function selectBet(amt, el) {
-        if (isPlaying) return;
-        currentBet = amt;
-        document.querySelectorAll('.ui-chip').forEach(c => c.classList.remove('active'));
-        el.classList.add('active');
-        document.getElementById('tableBets').innerHTML = `<div class="chip-stack"></div><div class="chip-stack"></div><div class="chip-stack"></div>`;
-    }
-    function clearBet() {
-        if (isPlaying) return;
-        document.getElementById('tableBets').innerHTML = '';
-    }
-
-    function getRiggedHands(target) {
-        let p = [], d = [];
-        if (target === 'player_win') {
-            p = [{suit:'♠', val:'K'}, {suit:'♥', val:'Q'}];
-            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'9'}];
-        } else if (target === 'dealer_win') {
-            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'7'}];
-            d = [{suit:'♦', val:'K'}, {suit:'♣', val:'Q'}];
-        } else if (target === 'push') {
-            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'9'}];
-            d = [{suit:'♦', val:'J'}, {suit:'♣', val:'9'}];
-        } else if (target === 'player_blackjack') {
-            p = [{suit:'♠', val:'A'}, {suit:'♥', val:'K'}];
-            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'7'}];
-        } else if (target === 'player_bust') {
-            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'5'}];
-            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'6'}];
-        } else if (target === 'dealer_bust') {
-            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'8'}];
-            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'6'}];
-        } else {
-            let deck = [];
-            for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
-            deck.sort(() => Math.random() - 0.5);
-            p = [deck.pop(), deck.pop()];
-            d = [deck.pop(), deck.pop()];
-        }
-        return { p, d };
-    }
-
-    function calcScore(hand) {
-        let score = 0, aces = 0;
-        for (let card of hand) {
-            if (card.val === 'A') { aces++; score += 11; }
-            else if (['K','Q','J'].includes(card.val)) score += 10;
-            else score += parseInt(card.val);
-        }
-        while (score > 21 && aces > 0) { score -= 10; aces--; }
-        return score;
-    }
-
-    function renderCard(container, card, index, hidden = false) {
-        const isRed = card.suit === '♥' || card.suit === '♦';
-        let div = document.createElement('div');
-        div.className = `card ${isRed ? 'red' : 'black'}`;
-        div.style.left = `${index * 30}px`; 
-        div.style.zIndex = index;
-        if (hidden) div.classList.add('card-back');
-        else div.innerHTML = `<div>\( {card.val}<br> \){card.suit}</div><div style="text-align:right; transform:rotate(180deg);">\( {card.val}<br> \){card.suit}</div>`;
-        
-        div.style.opacity = 0;
-        div.style.transform = `translate(100px, -100px) rotateX(-25deg) rotateZ(45deg) scale(0.5)`;
-        container.appendChild(div);
-        setTimeout(() => {
-            div.style.opacity = 1;
-            div.style.transform = `rotateX(-25deg) translateY(0) scale(1)`;
-        }, 50 + (index * 200));
-    }
-
-    async function startGame() {
-        if (isPlaying) return;
-        if (currentBet <= 0) return alert("Pilih chip taruhan!");
-        if (balance < currentBet) return alert("Saldo tidak cukup!");
-
-        isPlaying = true;
-        playerHand = []; dealerHand = [];
-        document.getElementById('playerCards').innerHTML = '';
-        document.getElementById('dealerCards').innerHTML = '';
-        
-        balance -= currentBet;
-        updateBalance();
-        await db.collection("users").doc(currentUser.uid).update({ 
-            balance: balance,
-            "stats.totalBet": firebase.firestore.FieldValue.increment(currentBet)
-        });
-
-        // Ambil setting per user
-        const userDoc = await db.collection("users").doc(currentUser.uid).get();
-        const userData = userDoc.data();
-        targetOutcome = userData.forcedOutcome || "random";
-        is1v1 = userData.is1v1 || false;
-        forcedDealerCards = userData.forcedDealerCards || [];
-
-        let hands;
-        if (is1v1 && forcedDealerCards.length >= 2) {
-            // Mode 1vs1 → pakai kartu dealer dari admin
-            let deck = [];
-            for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
-            deck.sort(() => Math.random() - 0.5);
-            playerHand = [deck.pop(), deck.pop()];
-            dealerHand = forcedDealerCards.slice(0, 2);
-        } else {
-            hands = getRiggedHands(targetOutcome);
-            playerHand = hands.p;
-            dealerHand = hands.d;
-        }
-
-        document.getElementById('btnDeal').style.display = 'none';
-        document.getElementById('btnClear').style.display = 'none';
-        document.getElementById('btnHit').style.display = 'flex';
-        document.getElementById('btnStand').style.display = 'flex';
-
-        renderCard(document.getElementById('playerCards'), playerHand[0], 0);
-        renderCard(document.getElementById('playerCards'), playerHand[1], 1);
-        renderCard(document.getElementById('dealerCards'), dealerHand[0], 0);
-        renderCard(document.getElementById('dealerCards'), dealerHand[1], 1, true);
-
-        document.getElementById('playerScore').innerText = calcScore(playerHand);
-
-        if (calcScore(playerHand) === 21) setTimeout(() => playerStand(), 1500);
-    }
-
-    function playerHit() {
-        if (!isPlaying) return;
-        let newCard;
-        if (targetOutcome === 'player_bust') {
-            newCard = {suit:'♦', val:'10'};
-        } else {
-            let deck = [];
-            for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
-            newCard = deck[Math.floor(Math.random() * deck.length)];
-        }
-        playerHand.push(newCard);
-        renderCard(document.getElementById('playerCards'), newCard, playerHand.length - 1);
-        document.getElementById('playerScore').innerText = calcScore(playerHand);
-        if (calcScore(playerHand) > 21) setTimeout(() => endGame('BUST'), 1000);
-    }
-
-    function playerStand() {
-        if (!isPlaying) return;
-        document.getElementById('btnHit').style.display = 'none';
-        document.getElementById('btnStand').style.display = 'none';
-
-        document.getElementById('dealerCards').innerHTML = '';
-        renderCard(document.getElementById('dealerCards'), dealerHand[0], 0);
-        renderCard(document.getElementById('dealerCards'), dealerHand[1], 1);
-        document.getElementById('dealerScore').innerText = calcScore(dealerHand);
-
-        setTimeout(() => {
-            let dealerScore = calcScore(dealerHand);
-
-            // Kalau 1vs1 dan admin kasih kartu tambahan
-            if (is1v1 && forcedDealerCards.length > 2) {
-                for (let i = 2; i < forcedDealerCards.length; i++) {
-                    dealerHand.push(forcedDealerCards[i]);
-                    renderCard(document.getElementById('dealerCards'), forcedDealerCards[i], i);
-                }
-                document.getElementById('dealerScore').innerText = calcScore(dealerHand);
-            } 
-            else if (targetOutcome === 'dealer_bust' && dealerScore < 17) {
-                let bustCard = {suit:'♣', val:'10'};
-                dealerHand.push(bustCard);
-                renderCard(document.getElementById('dealerCards'), bustCard, 2);
-                document.getElementById('dealerScore').innerText = calcScore(dealerHand);
-            }
-            else if (dealerScore < 17 && targetOutcome !== 'dealer_win') {
-                let deck = [];
-                for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
-                let newCard = deck.pop();
-                dealerHand.push(newCard);
-                renderCard(document.getElementById('dealerCards'), newCard, 2);
-                document.getElementById('dealerScore').innerText = calcScore(dealerHand);
-            }
-
-            setTimeout(() => endGame('STAND'), 1000);
-        }, 1000);
-    }
-
-    async function endGame(reason) {
-        isPlaying = false;
-        let pScore = calcScore(playerHand);
-        let dScore = calcScore(dealerHand);
-        let winAmount = 0;
-        let msg = "";
-        let result = "lose";
-
-        if (pScore > 21) {
-            msg = "PLAYER BUST!\nDealer Menang.";
-            result = "lose";
-        } else if (dScore > 21) {
-            msg = "DEALER BUST!\nAnda Menang!";
-            winAmount = currentBet * 2;
-            result = "win";
-        } else if (pScore > dScore) {
-            if (pScore === 21 && playerHand.length === 2) {
-                msg = "BLACKJACK!\nAnda Menang 1.5x!";
-                winAmount = currentBet + (currentBet * 1.5);
+        // Cek apakah sudah ada pick di market yang sama pada match tersebut
+        const existingIdx = slipPicks.findIndex(p => p.matchId === matchId && p.marketIdx === marketIdx);
+        if (existingIdx !== -1) {
+            if (slipPicks[existingIdx].optionIdx === optionIdx) {
+                slipPicks.splice(existingIdx, 1); // Unselect
             } else {
-                msg = "ANDA MENANG!";
-                winAmount = currentBet * 2;
+                // Ganti pilihan di market yang sama
+                slipPicks[existingIdx] = {
+                    matchId,
+                    matchTitle: `${match.teamA} vs ${match.teamB}`,
+                    marketIdx,
+                    marketTitle: market.title,
+                    optionIdx,
+                    optionLabel: option.label,
+                    odds: Number(option.odds)
+                };
             }
-            result = "win";
-        } else if (pScore < dScore) {
-            msg = "Dealer Menang.\nCoba lagi!";
-            result = "lose";
         } else {
-            msg = "PUSH (Seri).\nTaruhan dikembalikan.";
-            winAmount = currentBet;
-            result = "push";
+            slipPicks.push({
+                matchId,
+                matchTitle: `${match.teamA} vs ${match.teamB}`,
+                marketIdx,
+                marketTitle: market.title,
+                optionIdx,
+                optionLabel: option.label,
+                odds: Number(option.odds)
+            });
         }
 
-        const updates = {};
-        if (winAmount > 0) {
-            balance += winAmount;
-            updates.balance = balance;
-            updates["stats.totalWin"] = firebase.firestore.FieldValue.increment(winAmount);
-        }
-        if (result === "win") updates["stats.win"] = firebase.firestore.FieldValue.increment(1);
-        if (result === "lose") updates["stats.lose"] = firebase.firestore.FieldValue.increment(1);
-        if (result === "push") updates["stats.push"] = firebase.firestore.FieldValue.increment(1);
-
-        // Reset forced setelah dipakai
-        updates.forcedOutcome = "random";
-        updates.is1v1 = false;
-        updates.forcedDealerCards = [];
-
-        updateBalance();
-        await db.collection("users").doc(currentUser.uid).update(updates);
-
-        setTimeout(() => {
-            alert(msg);
-            document.getElementById('btnDeal').style.display = 'flex';
-            document.getElementById('btnClear').style.display = 'flex';
-            document.getElementById('btnHit').style.display = 'none';
-            document.getElementById('btnStand').style.display = 'none';
-            document.getElementById('dealerScore').innerText = "0";
-            document.getElementById('playerScore').innerText = "0";
-            document.getElementById('dealerCards').innerHTML = '';
-            document.getElementById('playerCards').innerHTML = '';
-            document.getElementById('tableBets').innerHTML = '';
-            selectBet(currentBet, document.querySelector('.ui-chip.active'));
-        }, 500);
+        renderMatches();
+        updateSlipUI();
     }
+
+    function updateSlipUI() {
+        const fab = document.getElementById('slipFab');
+        if (slipPicks.length === 0) {
+            fab.style.display = 'none';
+            closeModal('slipDrawer');
+            return;
+        }
+        fab.style.display = 'flex';
+        const totalOdds = slipPicks.reduce((acc, item) => acc * item.odds, 1);
+        document.getElementById('slipCount').innerText = slipPicks.length;
+        document.getElementById('slipTotalOdds').innerText = totalOdds.toFixed(2);
+        document.getElementById('drawerOdds').innerText = totalOdds.toFixed(2) + "x";
+
+        const container = document.getElementById('slipItemsContainer');
+        container.innerHTML = slipPicks.map((p, idx) => `
+            <div class="slip-item">
+                <div>
+                    <div style="font-size:0.75rem; color:#94a3b8;">${p.matchTitle}</div>
+                    <div style="font-size:0.85rem; font-weight:700;">${p.marketTitle}: <span style="color:#38bdf8;">${p.optionLabel}</span></div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <strong style="color:#fbbf24;">${p.odds.toFixed(2)}x</strong>
+                    <button class="remove-pick" onclick="removePick(${idx})">✕</button>
+                </div>
+            </div>
+        `).join('');
+
+        calcPotentialWin();
+    }
+
+    function removePick(idx) {
+        slipPicks.splice(idx, 1);
+        renderMatches();
+        updateSlipUI();
+    }
+
+    function calcPotentialWin() {
+        const bet = Number(document.getElementById('betAmount').value) || 0;
+        const totalOdds = slipPicks.reduce((acc, item) => acc * item.odds, 1);
+        const win = Math.floor(bet * totalOdds);
+        document.getElementById('potentialWin').innerText = "Rp " + win.toLocaleString('id-ID');
+    }
+
+    async function placeParlayBet() {
+        if (slipPicks.length === 0) return;
+        const bet = Number(document.getElementById('betAmount').value);
+        if (bet < 5000) return alert("Minimal pasang Rp 5.000!");
+        if ((userData.balance || 0) < bet) return alert("Saldo tidak mencukupi! Silakan Deposit terlebih dahulu.");
+
+        const totalOdds = slipPicks.reduce((acc, item) => acc * item.odds, 1);
+        const potentialWin = Math.floor(bet * totalOdds);
+
+        try {
+            // Potong saldo user & simpan tiket parlay
+            await db.collection("users").doc(currentUser.uid).update({
+                balance: firebase.firestore.FieldValue.increment(-bet)
+            });
+
+            await db.collection("parlay_tickets").add({
+                uid: currentUser.uid,
+                userName: userData.displayName || userData.email,
+                picks: slipPicks,
+                stake: bet,
+                totalOdds: Number(totalOdds.toFixed(2)),
+                potentialWin: potentialWin,
+                status: "pending", // pending | win | lose
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            slipPicks = [];
+            renderMatches();
+            updateSlipUI();
+            alert("Berhasil memasang Parlay! Semoga menang!");
+        } catch (err) {
+            alert("Gagal memasang tiket: " + err.message);
+        }
+    }
+
+    // ===== DEPOSIT QRIS & UPLOAD BUKTI =====
+    function setDepo(val) {
+        document.getElementById('depoAmount').value = val;
+    }
+
+    function compressImageToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxW = 550;
+                    const scale = maxW / img.width;
+                    canvas.width = maxW;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.65));
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function submitDeposit() {
+        const amount = Number(document.getElementById('depoAmount').value);
+        const fileInput = document.getElementById('depoProof');
+
+        if (amount < 10000) return alert("Minimal deposit adalah Rp 10.000!");
+        if (!fileInput.files || !fileInput.files[0]) return alert("Harap unggah foto/screenshot bukti transfer QRIS!");
+
+        const btn = document.getElementById('btnSubmitDepo');
+        btn.disabled = true;
+        btn.innerText = "Mengunggah bukti...";
+
+        try {
+            const proofBase64 = await compressImageToBase64(fileInput.files[0]);
+            await db.collection("transactions").add({
+                type: "deposit",
+                uid: currentUser.uid,
+                userName: userData.displayName || userData.email,
+                amount: amount,
+                proofImage: proofBase64,
+                status: "pending", // pending | approved | rejected
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            fileInput.value = "";
+            closeModal('depoModal');
+            alert("Bukti deposit berhasil dikirim! Tunggu admin mengecek & memasukkan saldo Anda.");
+        } catch (err) {
+            alert("Gagal mengirim deposit: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Kirim Bukti Deposit";
+        }
+    }
+
+    // ===== WITHDRAW =====
+    async function submitWithdraw() {
+        const amount = Number(document.getElementById('wdAmount').value);
+        const method = document.getElementById('wdMethod').value.trim();
+        const account = document.getElementById('wdAccount').value.trim();
+
+        if (amount < 20000) return alert("Minimal withdraw Rp 20.000!");
+        if (!method || !account) return alert("Isi metode dan nomor rekening/e-wallet tujuan!");
+        if ((userData.balance || 0) < amount) return alert("Saldo Anda tidak cukup!");
+
+        try {
+            await db.collection("users").doc(currentUser.uid).update({
+                balance: firebase.firestore.FieldValue.increment(-amount)
+            });
+
+            await db.collection("transactions").add({
+                type: "withdraw",
+                uid: currentUser.uid,
+                userName: userData.displayName || userData.email,
+                amount: amount,
+                method: method,
+                account: account,
+                status: "pending",
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            closeModal('wdModal');
+            alert("Pengajuan Withdraw berhasil dikirim ke Admin!");
+        } catch (err) {
+            alert("Gagal mengajukan withdraw: " + err.message);
+        }
+    }
+
+    // ===== NAVIGATION & HISTORY =====
+    let showingHistory = false;
+    function switchTab() {
+        showingHistory = !showingHistory;
+        document.getElementById('matchesSection').style.display = showingHistory ? 'none' : 'block';
+        document.getElementById('historySection').style.display = showingHistory ? 'block' : 'none';
+        if (showingHistory) loadHistory();
+    }
+
+    async function loadHistory() {
+        const container = document.getElementById('ticketList');
+        container.innerHTML = "Memuat riwayat...";
+
+        const snap = await db.collection("parlay_tickets")
+            .where("uid", "==", currentUser.uid)
+            .get();
+
+        let tickets = [];
+        snap.forEach(doc => tickets.push({ id: doc.id, ...doc.data() }));
+        tickets.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+        if (tickets.length === 0) {
+            container.innerHTML = "<p style='color:#64748b; text-align:center;'>Belum ada riwayat tiket parlay.</p>";
+            return;
+        }
+
+        container.innerHTML = tickets.map(t => {
+            const statusBadge = t.status === 'win' 
+                ? `<span class="badge-win">✅ MENANG (+Rp ${t.potentialWin.toLocaleString('id-ID')})</span>`
+                : (t.status === 'lose' ? `<span class="badge-lose">❌ KALAH</span>` : `<span class="badge-pending">⏳ MENUNGGU HASIL</span>`);
+
+            const picksHtml = t.picks.map(p => `
+                <div style="padding:4px 0; border-bottom:1px dashed #1e293b; font-size:0.8rem;">
+                    • ${p.matchTitle} — <strong>${p.marketTitle}: ${p.optionLabel}</strong> (${p.odds}x)
+                </div>
+            `).join('');
+
+            return `
+                <div class="ticket-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span>Pasang: <strong>Rp ${t.stake.toLocaleString('id-ID')}</strong> (${t.totalOdds}x)</span>
+                        ${statusBadge}
+                    </div>
+                    ${picksHtml}
+                    <div style="margin-top:6px; font-size:0.8rem; color:#94a3b8;">
+                        Potensi Kemenangan: <strong style="color:#4ade80;">Rp ${t.potentialWin.toLocaleString('id-ID')}</strong>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 </body>
-  </html>
+</html>

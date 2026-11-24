@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - MLBB Parlay Control</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: #070b14; color: #f1f5f9; padding-bottom: 50px; }
+        
+        .topbar { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
+        .topbar h1 { font-size: 1.15rem; color: #38bdf8; }
+        
+        .tabs { display: flex; gap: 6px; padding: 12px 20px; background: #0b1120; border-bottom: 1px solid #1e293b; overflow-x: auto; }
+        .tab-btn { padding: 9px 14px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; font-weight: 600; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
+        .tab-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 18px; }
+        .card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .card h3 { font-size: 1rem; color: #38bdf8; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        @media(max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 9px 11px; background: #0f172a; border: 1px solid #334155; border-radius: 7px; color: #fff; font-size: 0.88rem; }
+
+        .btn { padding: 9px 14px; border-radius: 7px; border: none; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
+        .btn-blue { background: #0284c7; color: #fff; }
+        .btn-green { background: #16a34a; color: #fff; }
+        .btn-red { background: #dc2626; color: #fff; }
+        .btn-amber { background: #d97706; color: #fff; }
+        .btn-slate { background: #334155; color: #fff; }
+
+        /* MARKET BUILDER */
+        .market-editor { background: #0b101b; border: 1px solid #293548; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .opt-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 6px; margin-top: 6px; }
+
+        /* PROGRESS BAR MAYORITAS PICK */
+        .stat-bar-wrap { margin-top: 6px; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 3px; }
+        .stat-track { width: 100%; height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+        .stat-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); }
+
+        /* PROOF IMAGE */
+        .proof-thumb { max-width: 240px; border-radius: 8px; border: 1px solid #334155; margin-top: 8px; cursor: pointer; }
+
+        /* PIN LOCK */
+        .pin-screen { position: fixed; inset: 0; background: #070b14; z-index: 999; display: flex; justify-content: center; align-items: center; }
+        .pin-box { background: #111827; border: 1px solid #334155; padding: 28px; border-radius: 14px; width: 320px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<!-- PIN ADMIN -->
+<div class="pin-screen" id="pinScreen">
+    <div class="pin-box">
+        <h2 style="color:#38bdf8; margin-bottom:8px;">🛡️ ADMIN PANEL</h2>
+        <p style="font-size:0.82rem; color:#94a3b8; margin-bottom:14px;">Masukkan PIN Admin (Default: 123456)</p>
+        <input type="password" id="adminPinInput" placeholder="••••••" style="text-align:center; font-size:1.2rem; letter-spacing:4px; margin-bottom:12px;">
+        <button class="btn btn-blue" style="width:100%;" onclick="unlockAdmin()">Buka Panel Admin</button>
+    </div>
+</div>
+
+<div id="adminDashboard" style="display:none;">
+    <div class="topbar">
+        <h1>🛡️ ADMIN MLBB PARLAY</h1>
+        <span style="font-size:0.8rem; color:#4ade80;">● Terhubung Firebase</span>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('tabMatches', this)">⚔️ Jadwal & Perkalian</button>
+        <button class="tab-btn" onclick="showTab('tabMajority', this)">📊 Mayoritas Pick Pemain</button>
+        <button class="tab-btn" onclick="showTab('tabFinance', this)">💳 Deposit QRIS & WD <span id="pendingBadge" style="background:#ef4444; padding:1px 6px; border-radius:10px; font-size:0.75rem;">0</span></button>
+        <button class="tab-btn" onclick="showTab('tabUsers', this)">👥 Kelola Saldo Pemain</button>
+    </div>
+
+    <div class="container">
+        <!-- TAB 1: JADWAL, LOGO, MULTI-MARKET & ODDS -->
+        <div id="tabMatches" class="tab-content">
+            <div class="card">
+                <h3>➕ Buat Pertandingan MLBB Baru</h3>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Nama Turnamen</label>
+                        <input type="text" id="mTournament" value="MPL ID Season 15">
+                    </div>
+                    <div class="form-group">
+                        <label>Jadwal Pertandingan</label>
+                        <input type="text" id="mSchedule" placeholder="Hari Ini, 19:00 WIB">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Nama Tim A (Kiri)</label>
+                        <input type="text" id="mTeamA" placeholder="Contoh: RRQ Hoshi">
+                    </div>
+                    <div class="form-group">
+                        <label>URL Logo Tim A (Opsional)</label>
+                        <input type="text" id="mLogoA" placeholder="https://.../logo-rrq.png">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Nama Tim B (Kanan)</label>
+                        <input type="text" id="mTeamB" placeholder="Contoh: ONIC Esports">
+                    </div>
+                    <div class="form-group">
+                        <label>URL Logo Tim B (Opsional)</label>
+                        <input type="text" id="mLogoB" placeholder="https://.../logo-onic.png">
+                    </div>
+                </div>
+
+                <div style="margin: 12px 0 8px; display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:0.88rem; color:#fbbf24;">🎯 Kategori Taruhan & Perkalian (Odds)</strong>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-slate" onclick="addPresetMarkets()">+ Preset MLBB Lengkap</button>
+                        <button class="btn btn-blue" onclick="addMarketBox()">+ Tambah Market</button>
+                    </div>
+                </div>
+                <div id="marketsBuilder"></div>
+
+                <button class="btn btn-green" style="width:100%; margin-top:10px; padding:12px;" onclick="saveNewMatch()">PUBLISH PERTANDINGAN KE PEMAIN</button>
+            </div>
+
+            <div class="card">
+                <h3>📋 Daftar Pertandingan Aktif & Penentuan Hasil</h3>
+                <div id="adminMatchList">Memuat data...</div>
+            </div>
+        </div>
+
+        <!-- TAB 2: MAYORITAS PICK PEMAIN -->
+        <div id="tabMajority" class="tab-content" style="display:none;">
+            <div class="card">
+                <h3>📊 Analisis Mayoritas Pick Pemain (Real-time)</h3>
+                <p style="font-size:0.82rem; color:#94a3b8; margin-bottom:14px;">Pantau pilihan terbanyak dari seluruh tiket parlay aktif pemain pada setiap pertandingan.</p>
+                <div id="majorityContainer">Memuat statistik pick...</div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DEPOSIT QRIS & WITHDRAW -->
+        <div id="tabFinance" class="tab-content" style="display:none;">
+            <div class="card">
+                <h3>💳 Permintaan Deposit (Bukti QRIS) & Withdraw</h3>
+                <div id="txList">Memuat transaksi...</div>
+            </div>
+        </div>
+
+        <!-- TAB 4: KELOLA SALDO PEMAIN -->
+        <div id="tabUsers" class="tab-content" style="display:none;">
+            <div class="card">
+                <h3>👥 Daftar Pemain & Tambah / Edit Saldo Manual</h3>
+                <div id="usersList">Memuat daftar pemain...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAzJ6p_stDYeaviIK1CapIpz_pc8onN5hM",
+        authDomain: "spaceman-sukses.firebaseapp.com",
+        projectId: "spaceman-sukses",
+        storageBucket: "spaceman-sukses.firebasestorage.app",
+        messagingSenderId: "442967300277",
+        appId: "1:442967300277:web:65b99aebdbc478455586fc"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const ADMIN_PIN = "123456"; // Ubah PIN sesuai keinginan
+
+    function unlockAdmin() {
+        const pin = document.getElementById('adminPinInput').value;
+        if (pin === ADMIN_PIN) {
+            document.getElementById('pinScreen').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            initAdminListeners();
+        } else {
+            alert("PIN Admin Salah!");
+        }
+    }
+
+    function showTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).style.display = 'block';
+        btn.classList.add('active');
+    }
+
+    // ===== MARKET BUILDER (MATCH WINNER, HERO PERTAMA, FIRST BLOOD, DLL) =====
+    let builderMarkets = [
+        { title: "Pemenang Pertandingan (Match Winner)", options: [{ label: "Tim A", odds: 1.85 }, { label: "Tim B", odds: 1.95 }] }
+    ];
+
+    function renderMarketBuilder() {
+        const wrap = document.getElementById('marketsBuilder');
+        wrap.innerHTML = builderMarkets.map((mkt, mIdx) => `
+            <div class="market-editor">
+                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                    <input type="text" value="${mkt.title}" placeholder="Nama Market (Misal: Tebak Hero Pertama / First Blood)" onchange="builderMarkets[${mIdx}].title = this.value">
+                    <button class="btn btn-red" onclick="removeMarketBox(${mIdx})">Hapus</button>
+                </div>
+                ${mkt.options.map((opt, oIdx) => `
+                    <div class="opt-row">
+                        <input type="text" value="${opt.label}" placeholder="Pilihan (Misal: Ling / Fanny / Tim A)" onchange="builderMarkets[${mIdx}].options[${oIdx}].label = this.value">
+                        <input type="number" step="0.01" value="${opt.odds}" placeholder="Kali (1.85)" onchange="builderMarkets[${mIdx}].options[${oIdx}].odds = parseFloat(this.value)">
+                        <button class="btn btn-slate" onclick="removeOptionBox(${mIdx}, ${oIdx})">✕</button>
+                    </div>
+                `).join('')}
+                <button class="btn btn-slate" style="margin-top:8px; font-size:0.75rem;" onclick="addOptionBox(${mIdx})">+ Tambah Opsi Pilihan</button>
+            </div>
+        `).join('');
+    }
+
+    function addMarketBox() {
+        builderMarkets.push({
+            title: "Tebak Hero Pertama Pick",
+            options: [
+                { label: "Fanny", odds: 3.50 },
+                { label: "Ling", odds: 3.20 },
+                { label: "Hayabusa", odds: 2.90 },
+                { label: "Hero Lainnya", odds: 1.65 }
+            ]
+        });
+        renderMarketBuilder();
+    }
+
+    function addPresetMarkets() {
+        const tA = document.getElementById('mTeamA').value || "Tim A";
+        const tB = document.getElementById('mTeamB').value || "Tim B";
+        builderMarkets = [
+            { title: "Pemenang Pertandingan", options: [{ label: tA, odds: 1.85 }, { label: tB, odds: 1.95 }] },
+            { title: "First Blood (Kill Pertama)", options: [{ label: tA, odds: 1.90 }, { label: tB, odds: 1.90 }] },
+            { title: "First Turtle", options: [{ label: tA, odds: 1.85 }, { label: tB, odds: 1.95 }] },
+            { title: "Tebak Hero Pertama (First Pick)", options: [{ label: "Fanny", odds: 3.80 }, { label: "Zhuxin", odds: 2.75 }, { label: "Suyou", odds: 2.90 }, { label: "Lainnya", odds: 1.70 }] }
+        ];
+        renderMarketBuilder();
+    }
+
+    function removeMarketBox(mIdx) { builderMarkets.splice(mIdx, 1); renderMarketBuilder(); }
+    function addOptionBox(mIdx) { builderMarkets[mIdx].options.push({ label: "Opsi Baru", odds: 2.00 }); renderMarketBuilder(); }
+    function removeOptionBox(mIdx, oIdx) { builderMarkets[mIdx].options.splice(oIdx, 1); renderMarketBuilder(); }
+
+    renderMarketBuilder();
+
+    async function saveNewMatch() {
+        const teamA = document.getElementById('mTeamA').value.trim();
+        const teamB = document.getElementById('mTeamB').value.trim();
+        if (!teamA || !teamB) return alert("Nama Tim A dan Tim B wajib diisi!");
+
+        await db.collection("mlbb_matches").add({
+            tournament: document.getElementById('mTournament').value.trim(),
+            schedule: document.getElementById('mSchedule').value.trim(),
+            teamA: teamA,
+            teamALogo: document.getElementById('mLogoA').value.trim(),
+            teamB: teamB,
+            teamBLogo: document.getElementById('mLogoB').value.trim(),
+            status: "upcoming", // upcoming | live | closed | finished
+            markets: builderMarkets,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Pertandingan MLBB berhasil ditambahkan!");
+    }
+
+    // ===== REALTIME LISTENERS =====
+    let allMatches = [];
+    let allTickets = [];
+
+    function initAdminListeners() {
+        // 1. Matches
+        db.collection("mlbb_matches").orderBy("createdAt", "desc").onSnapshot(snap => {
+            allMatches = [];
+            snap.forEach(doc => allMatches.push({ id: doc.id, ...doc.data() }));
+            renderAdminMatches();
+            renderMajorityStats();
+        });
+
+        // 2. Tickets (untuk hitung mayoritas pick)
+        db.collection("parlay_tickets").onSnapshot(snap => {
+            allTickets = [];
+            snap.forEach(doc => allTickets.push({ id: doc.id, ...doc.data() }));
+            renderMajorityStats();
+        });
+
+        // 3. Transactions (Deposit & WD)
+        db.collection("transactions").orderBy("createdAt", "desc").onSnapshot(snap => {
+            let txs = [];
+            let pendingCount = 0;
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (d.status === 'pending') pendingCount++;
+                txs.push({ id: doc.id, ...d });
+            });
+            document.getElementById('pendingBadge').innerText = pendingCount;
+            renderTransactions(txs);
+        });
+
+        // 4. Users
+        db.collection("users").onSnapshot(snap => {
+            let users = [];
+            snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+            renderUsers(users);
+        });
+    }
+
+    function renderAdminMatches() {
+        const wrap = document.getElementById('adminMatchList');
+        if (allMatches.length === 0) {
+            wrap.innerHTML = "<p style='color:#64748b;'>Belum ada pertandingan.</p>";
+            return;
+        }
+
+        wrap.innerHTML = allMatches.map(m => {
+            const marketsHtml = (m.markets || []).map((mkt, mIdx) => {
+                const optsHtml = (mkt.options || []).map((opt, oIdx) => `
+                    <div style="display:flex; align-items:center; gap:6px; background:#0f172a; padding:6px 8px; border-radius:6px; margin-top:5px;">
+                        <span style="flex:1; font-size:0.82rem;">${opt.label}</span>
+                        <input type="number" step="0.01" value="${opt.odds}" style="width:75px; padding:4px;" onchange="updateOdd('${m.id}', ${mIdx}, ${oIdx}, this.value)">
+                        <button class="btn btn-green" style="padding:4px 8px; font-size:0.75rem;" onclick="setMarketWinner('${m.id}', ${mIdx}, ${oIdx})">
+                            ${mkt.winnerIdx === oIdx ? '✅ MENANG' : 'Set Menang'}
+                        </button>
+                    </div>
+                `).join('');
+                return `<div style="margin-top:8px; padding:8px; background:#0b101b; border-radius:6px;"><strong style="font-size:0.82rem; color:#38bdf8;">${mkt.title}</strong>${optsHtml}</div>`;
+            }).join('');
+
+            return `
+                <div style="border:1px solid #334155; border-radius:10px; padding:12px; margin-bottom:12px; background:#0f172a;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <strong>${m.teamA} vs ${m.teamB}</strong> 
+                            <span style="font-size:0.78rem; color:#94a3b8;">(${m.schedule}) • Status: <strong>${m.status.toUpperCase()}</strong></span>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-amber" onclick="changeMatchStatus('${m.id}', 'live')">Live</button>
+                            <button class="btn btn-slate" onclick="changeMatchStatus('${m.id}', 'closed')">Tutup Pick</button>
+                            <button class="btn btn-green" onclick="finalizeMatchSettlement('${m.id}')">Selesaikan & Cairkan</button>
+                            <button class="btn btn-red" onclick="deleteMatch('${m.id}')">Hapus</button>
+                        </div>
+                    </div>
+                    ${marketsHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function updateOdd(matchId, mIdx, oIdx, newOdd) {
+        const match = allMatches.find(m => m.id === matchId);
+        match.markets[mIdx].options[oIdx].odds = parseFloat(newOdd);
+        await db.collection("mlbb_matches").doc(matchId).update({ markets: match.markets });
+    }
+
+    async function setMarketWinner(matchId, mIdx, oIdx) {
+        const match = allMatches.find(m => m.id === matchId);
+        match.markets[mIdx].winnerIdx = oIdx;
+        await db.collection("mlbb_matches").doc(matchId).update({ markets: match.markets });
+    }
+
+    async function changeMatchStatus(matchId, status) {
+        await db.collection("mlbb_matches").doc(matchId).update({ status: status });
+    }
+
+    async function deleteMatch(matchId) {
+        if (confirm("Hapus pertandingan ini?")) await db.collection("mlbb_matches").doc(matchId).delete();
+    }
+
+    // ===== SETTLEMENT PARLAY OTOMATIS =====
+    async function finalizeMatchSettlement(matchId) {
+        const match = allMatches.find(m => m.id === matchId);
+        if (!match) return;
+
+        // Cek apakah semua market sudah dipilih pemenangnya
+        const unset = match.markets.some(mkt => mkt.winnerIdx === undefined || mkt.winnerIdx === null);
+        if (unset) return alert("Pilih pemenang ('Set Menang') di semua kategori taruhan pertandingan ini terlebih dahulu!");
+
+        if (!confirm(`Selesaikan pertandingan ${match.teamA} vs ${match.teamB} dan proses tiket parlay pemain?`)) return;
+
+        await db.collection("mlbb_matches").doc(matchId).update({ status: "finished" });
+
+        // Evaluasi tiket parlay yang masih pending
+        const pendingTickets = allTickets.filter(t => t.status === "pending");
+        for (let ticket of pendingTickets) {
+            let hasLost = false;
+            let allResolved = true;
+
+            for (let pick of ticket.picks) {
+                const pMatch = pick.matchId === matchId ? match : allMatches.find(m => m.id === pick.matchId);
+                if (!pMatch || pMatch.status !== "finished") {
+                    allResolved = false;
+                    continue;
+                }
+                const mkt = pMatch.markets[pick.marketIdx];
+                if (mkt.winnerIdx !== pick.optionIdx) {
+                    hasLost = true;
+                }
+            }
+
+            if (hasLost) {
+                await db.collection("parlay_tickets").doc(ticket.id).update({ status: "lose" });
+            } else if (allResolved) {
+                // Semua pick di tiket ini menang! Tambahkan saldo ke pemain
+                await db.collection("parlay_tickets").doc(ticket.id).update({ status: "win" });
+                await db.collection("users").doc(ticket.uid).update({
+                    balance: firebase.firestore.FieldValue.increment(ticket.potentialWin)
+                });
+            }
+        }
+
+        alert("Pertandingan selesai! Tiket parlay pemain telah otomatis dihitung & saldo pemenang dicairkan.");
+    }
+
+    // ===== MAYORITAS PICK PEMAIN =====
+    function renderMajorityStats() {
+        const wrap = document.getElementById('majorityContainer');
+        const activeMatches = allMatches.filter(m => m.status !== 'finished');
+
+        if (activeMatches.length === 0) {
+            wrap.innerHTML = "<p style='color:#64748b;'>Tidak ada pertandingan aktif untuk dianalisis.</p>";
+            return;
+        }
+
+        wrap.innerHTML = activeMatches.map(m => {
+            const marketsStatHtml = (m.markets || []).map((mkt, mIdx) => {
+                // Hitung jumlah pick per opsi dari semua tiket
+                let counts = new Array(mkt.options.length).fill(0);
+                let totalPicks = 0;
+
+                allTickets.forEach(t => {
+                    (t.picks || []).forEach(p => {
+                        if (p.matchId === m.id && p.marketIdx === mIdx && counts[p.optionIdx] !== undefined) {
+                            counts[p.optionIdx]++;
+                            totalPicks++;
+                        }
+                    });
+                });
+
+                const barsHtml = mkt.options.map((opt, oIdx) => {
+                    const pct = totalPicks > 0 ? Math.round((counts[oIdx] / totalPicks) * 100) : 0;
+                    return `
+                        <div class="stat-bar-wrap">
+                            <div class="stat-label">
+                                <span>${opt.label} (${opt.odds}x)</span>
+                                <strong>${counts[oIdx]} Pick (${pct}%)</strong>
+                            </div>
+                            <div class="stat-track">
+                                <div class="stat-fill" style="width:${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div style="background:#0b101b; padding:10px; border-radius:8px; margin-top:8px;">
+                        <div style="font-size:0.82rem; font-weight:700; color:#fbbf24;">${mkt.title} (Total: ${totalPicks} Pick)</div>
+                        ${barsHtml}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div style="border:1px solid #334155; padding:12px; border-radius:10px; margin-bottom:12px;">
+                    <strong>⚔️ ${m.teamA} vs ${m.teamB}</strong>
+                    ${marketsStatHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ===== DEPOSIT QRIS & WITHDRAW APPROVAL =====
+    function renderTransactions(txs) {
+        const wrap = document.getElementById('txList');
+        if (txs.length === 0) {
+            wrap.innerHTML = "<p style='color:#64748b;'>Belum ada transaksi masuk.</p>";
+            return;
+        }
+
+        wrap.innerHTML = txs.map(tx => {
+            const isDepo = tx.type === 'deposit';
+            const badgeColor = tx.status === 'approved' ? '#4ade80' : (tx.status === 'rejected' ? '#f87171' : '#fbbf24');
+            
+            const actionBtns = tx.status === 'pending' ? `
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <button class="btn btn-green" onclick="processTx('${tx.id}', '${tx.uid}', '${tx.type}', ${tx.amount}, 'approved')">
+                        ${isDepo ? '✅ Terima & Masuk Saldo' : '✅ Setujui WD'}
+                    </button>
+                    <button class="btn btn-red" onclick="processTx('${tx.id}', '${tx.uid}', '${tx.type}', ${tx.amount}, 'rejected')">
+                        ❌ Tolak
+                    </button>
+                </div>
+            ` : '';
+
+            return `
+                <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:12px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong>${isDepo ? '📥 DEPOSIT QRIS' : '📤 WITHDRAW'} — Rp ${Number(tx.amount).toLocaleString('id-ID')}</strong>
+                        <span style="color:${badgeColor}; font-weight:700; text-transform:uppercase; font-size:0.8rem;">${tx.status}</span>
+                    </div>
+                    <div style="font-size:0.82rem; color:#94a3b8; margin-top:4px;">
+                        Pemain: <strong>${tx.userName}</strong>
+                        ${!isDepo ? `<br>Tujuan: <strong>${tx.method} - ${tx.account}</strong>` : ''}
+                    </div>
+                    ${tx.proofImage ? `<div><img src="${tx.proofImage}" class="proof-thumb" onclick="window.open(this.src)"></div>` : ''}
+                    ${actionBtns}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function processTx(txId, uid, type, amount, decision) {
+        if (!confirm(`Ubah status transaksi menjadi ${decision.toUpperCase()}?`)) return;
+
+        await db.collection("transactions").doc(txId).update({ status: decision });
+
+        if (type === 'deposit' && decision === 'approved') {
+            await db.collection("users").doc(uid).update({
+                balance: firebase.firestore.FieldValue.increment(amount)
+            });
+            alert("Deposit disetujui! Saldo pemain otomatis bertambah Rp " + amount.toLocaleString('id-ID'));
+        } else if (type === 'withdraw' && decision === 'rejected') {
+            // Kembalikan saldo jika WD ditolak
+            await db.collection("users").doc(uid).update({
+                balance: firebase.firestore.FieldValue.increment(amount)
+            });
+            alert("Withdraw ditolak & saldo dikembalikan ke pemain.");
+        }
+    }
+
+    // ===== KELOLA SALDO PEMAIN MANUAL =====
+    function renderUsers(users) {
+        const wrap = document.getElementById('usersList');
+        wrap.innerHTML = users.map(u => `
+            <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <strong>${u.displayName || 'Player'}</strong> <span style="font-size:0.78rem; color:#94a3b8;">(${u.email})</span>
+                    <div style="font-size:0.8rem; color:#94a3b8;">HP/E-Wallet: ${u.phone || '-'} | Saldo: <strong style="color:#4ade80;">Rp ${(u.balance || 0).toLocaleString('id-ID')}</strong></div>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <input type="number" id="topup_${u.id}" placeholder="Nominal Rp" style="width:120px;">
+                    <button class="btn btn-green" onclick="manualBalance('${u.id}', 1)">+ Tambah</button>
+                    <button class="btn btn-red" onclick="manualBalance('${u.id}', -1)">- Kurangi</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function manualBalance(uid, multiplier) {
+        const val = Number(document.getElementById('topup_' + uid).value);
+        if (!val || val <= 0) return alert("Masukkan nominal saldo yang valid!");
+
+        await db.collection("users").doc(uid).update({
+            balance: firebase.firestore.FieldValue.increment(val * multiplier)
+        });
+        document.getElementById('topup_' + uid).value = "";
+        alert("Saldo pemain berhasil diperbarui!");
+    }
+</script>
+</body>
+</html>

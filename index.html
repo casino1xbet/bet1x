@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLBB Parlay Arena — Player</title>
+    <title>MLBB Parlay Arena — Pemain</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -14,11 +14,7 @@
             --bg-elevated: #152036;
             --border: rgba(148, 163, 184, 0.15);
             --accent: #38bdf8;
-            --accent-2: #6366f1;
             --gold: #fbbf24;
-            --green: #22c55e;
-            --red: #ef4444;
-            --orange: #f97316;
             --text: #f8fafc;
             --muted: #94a3b8;
         }
@@ -34,7 +30,7 @@
         /* AUTH MODAL */
         .modal-overlay {
             position: fixed; inset: 0;
-            background: rgba(4, 7, 15, 0.94);
+            background: rgba(4, 7, 15, 0.95);
             backdrop-filter: blur(8px);
             z-index: 200;
             display: none;
@@ -49,8 +45,8 @@
             border: 1px solid rgba(56, 189, 248, 0.25);
             border-radius: 20px;
             width: 100%;
-            max-width: 410px;
-            padding: 28px 22px;
+            max-width: 390px;
+            padding: 26px 22px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
         }
         .auth-badge {
@@ -62,37 +58,10 @@
             border-radius: 999px;
             font-size: 0.72rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
             margin-bottom: 10px;
         }
-        .auth-title { font-size: 1.45rem; font-weight: 800; margin-bottom: 4px; }
-        .auth-sub { font-size: 0.84rem; color: var(--muted); margin-bottom: 18px; }
-
-        .btn-google {
-            width: 100%;
-            padding: 11px 14px;
-            border-radius: 11px;
-            border: 1px solid #e2e8f0;
-            background: #ffffff;
-            color: #0f172a;
-            font-weight: 700;
-            font-size: 0.88rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: transform 0.12s ease, opacity 0.12s ease;
-        }
-        .btn-google:active { transform: scale(0.98); }
-
-        .or-divider {
-            display: flex; align-items: center; gap: 10px;
-            color: var(--muted); font-size: 0.75rem; margin: 16px 0;
-        }
-        .or-divider::before, .or-divider::after {
-            content: ""; flex: 1; height: 1px; background: var(--border);
-        }
+        .auth-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; }
+        .auth-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 18px; }
 
         .form-group { margin-bottom: 12px; }
         .form-group label {
@@ -108,7 +77,6 @@
             color: #fff;
             font-size: 0.9rem;
             outline: none;
-            transition: border-color 0.15s ease;
         }
         .form-group input:focus { border-color: var(--accent); }
 
@@ -123,9 +91,7 @@
             font-size: 0.92rem;
             cursor: pointer;
             box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
-            transition: transform 0.12s ease, opacity 0.15s ease;
         }
-        .btn-main:active { transform: scale(0.98); }
         .btn-main:disabled { opacity: 0.55; cursor: not-allowed; }
 
         .auth-switch {
@@ -147,9 +113,9 @@
             width: 34px; height: 34px; border-radius: 10px;
             background: linear-gradient(135deg, #0ea5e9, #6366f1);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+            font-size: 1.1rem;
         }
-        .brand-text { font-weight: 800; font-size: 0.98rem; letter-spacing: 0.3px; }
+        .brand-text { font-weight: 800; font-size: 0.98rem; }
         .brand-sub { font-size: 0.68rem; color: var(--accent); font-weight: 600; }
 
         .wallet-pill {
@@ -166,9 +132,8 @@
             background: rgba(15, 23, 42, 0.9);
             color: #e2e8f0; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.82rem; transition: background 0.15s ease;
+            font-size: 0.82rem;
         }
-        .circle-btn:hover { background: #1e293b; }
 
         /* QUICK ACTIONS */
         .quick-bar {
@@ -179,11 +144,9 @@
             padding: 10px 8px; border-radius: 11px; border: 1px solid var(--border);
             font-weight: 700; font-size: 0.82rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 6px;
-            transition: transform 0.12s ease;
         }
-        .q-btn:active { transform: scale(0.97); }
-        .q-depo { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border-color: rgba(74, 222, 128, 0.35); }
-        .q-wd { background: linear-gradient(135deg, #ea580c, #c2410c); color: #fff; border-color: rgba(251, 146, 60, 0.35); }
+        .q-depo { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+        .q-wd { background: linear-gradient(135deg, #ea580c, #c2410c); color: #fff; }
         .q-hist { background: var(--bg-card); color: #e2e8f0; }
 
         /* MAIN CONTAINER */
@@ -252,7 +215,7 @@
         }
         .market-name {
             font-size: 0.78rem; font-weight: 700; color: #cbd5e1;
-            margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+            margin-bottom: 8px;
         }
         .odds-grid {
             display: grid;
@@ -267,13 +230,10 @@
             color: var(--text);
             cursor: pointer;
             display: flex; flex-direction: column; align-items: center;
-            transition: all 0.14s ease;
         }
-        .odd-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
         .odd-btn.active {
             background: linear-gradient(135deg, #0284c7, #4f46e5);
             border-color: #7dd3fc;
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
         }
         .odd-btn:disabled { opacity: 0.42; cursor: not-allowed; }
         .odd-opt { font-size: 0.75rem; color: #e2e8f0; font-weight: 600; text-align: center; }
@@ -338,7 +298,6 @@
             color: #e2e8f0; border-radius: 8px; padding: 8px 4px;
             font-size: 0.78rem; font-weight: 700; cursor: pointer;
         }
-        .amt-chip:hover { border-color: var(--accent); }
 
         .history-card {
             background: var(--bg-card); border: 1px solid var(--border);
@@ -351,46 +310,27 @@
 </head>
 <body>
 
-    <!-- MODAL WAJIB DAFTAR / LOGIN -->
+    <!-- MODAL DAFTAR / LOGIN SEDERHANA (NAMA, NO HP, PASSWORD) -->
     <div class="modal-overlay" id="authModal">
         <div class="auth-card">
             <div class="auth-badge">MOBILE LEGENDS PARLAY</div>
             <h1 class="auth-title" id="authTitle">Daftar Akun Pemain</h1>
-            <p class="auth-sub" id="authSub">Daftar terlebih dahulu untuk mulai nge-pick tim & hero MLBB.</p>
+            <p class="auth-sub" id="authSub">Isi nama, no. HP, dan password untuk mulai bermain.</p>
 
-            <button class="btn-google" onclick="loginGoogle()">
-                <svg width="18" height="18" viewBox="0 0 48 48">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                </svg>
-                Lanjutkan dengan Google
-            </button>
-
-            <div class="or-divider">ATAU DAFTAR EMAIL</div>
-
-            <div id="registerExtra">
-                <div class="form-group">
-                    <label>Nickname / Nama Pemain</label>
-                    <input type="text" id="regNickname" placeholder="Contoh: SkyBreaker99">
-                </div>
-                <div class="form-group">
-                    <label>No. HP / E-Wallet (DANA / OVO / GoPay)</label>
-                    <input type="text" id="regWallet" placeholder="0812xxxxxxxx">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="authEmail" placeholder="pemain@email.com">
+            <div class="form-group" id="nameFieldGroup">
+                <label>Nama</label>
+                <input type="text" id="regName" placeholder="Nama kamu">
             </div>
             <div class="form-group">
-                <label>Password (minimal 6 karakter)</label>
-                <input type="password" id="authPassword" placeholder="••••••••">
+                <label>No. HP</label>
+                <input type="tel" id="authPhone" placeholder="08xxxxxxxxxx">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="authPassword" placeholder="Minimal 6 karakter">
             </div>
 
-            <button class="btn-main" id="authSubmitBtn" onclick="submitEmailAuth()">Daftar Sekarang</button>
+            <button class="btn-main" id="authSubmitBtn" onclick="submitSimpleAuth()">Daftar Sekarang</button>
 
             <div class="auth-switch" id="authSwitchText">
                 Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>
@@ -422,7 +362,6 @@
             <button class="q-btn q-hist" onclick="toggleHistoryView()">📜 Riwayat</button>
         </div>
 
-        <!-- HALAMAN JADWAL -->
         <main class="page-wrap" id="matchesView">
             <div class="section-head">
                 <h2>🏆 Jadwal Pertandingan MLBB</h2>
@@ -433,7 +372,6 @@
             </div>
         </main>
 
-        <!-- HALAMAN RIWAYAT -->
         <main class="page-wrap" id="historyView" style="display:none;">
             <div class="section-head">
                 <h2>📜 Riwayat Tiket Parlay Saya</h2>
@@ -478,7 +416,7 @@
         </div>
     </div>
 
-    <!-- MODAL DEPOSIT QRIS (MIN 10 RIBU + BUKTI TF) -->
+    <!-- MODAL DEPOSIT QRIS -->
     <div class="drawer-overlay" id="depoModal" onclick="backdropClose(event, 'depoModal')">
         <div class="drawer-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -486,7 +424,7 @@
                 <button class="circle-btn" onclick="closeOverlay('depoModal')">✕</button>
             </div>
             <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">
-                Minimal deposit <strong style="color:#fff;">Rp 10.000</strong>. Pilih nominal, scan QRIS di bawah, lalu unggah bukti transfer.
+                Minimal deposit <strong style="color:#fff;">Rp 10.000</strong>. Pilih nominal, scan QRIS, lalu unggah bukti transfer.
             </p>
 
             <div class="amount-grid">
@@ -505,12 +443,12 @@
                 <div class="qris-badge">QRIS • SCAN UNTUK BAYAR</div>
                 <img src="1000490831.jpg" alt="QRIS Pembayaran">
                 <div style="font-size:0.72rem; color:#475569; margin-top:6px;">
-                    Mendukung semua E-Wallet & Mobile Banking berlogo QRIS[span_1](start_span)[span_1](end_span)
+                    Scan menggunakan E-Wallet atau Mobile Banking berlogo QRIS[span_2](start_span)[span_2](end_span)
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Bukti Pembayaran / Transfer (Wajib Upload Foto/SS)</label>
+                <label>Bukti Pembayaran (Upload Foto/SS)</label>
                 <input type="file" id="depoProofInput" accept="image/*">
             </div>
 
@@ -533,12 +471,12 @@
                 <input type="number" id="wdAmountInput" value="20000" min="20000">
             </div>
             <div class="form-group">
-                <label>Metode Pembayaran (DANA / OVO / GoPay / Bank)</label>
+                <label>Metode (DANA / OVO / GoPay / Bank)</label>
                 <input type="text" id="wdMethodInput" placeholder="Contoh: DANA">
             </div>
             <div class="form-group">
                 <label>Nomor Tujuan & Nama Pemilik</label>
-                <input type="text" id="wdAccountInput" placeholder="0812xxxxxxxx a/n Nama Anda">
+                <input type="text" id="wdAccountInput" placeholder="08xxxxxxxxxx a/n Nama">
             </div>
 
             <button class="btn-main" style="background:linear-gradient(135deg,#ea580c,#c2410c);" onclick="sendWithdrawRequest()">
@@ -570,61 +508,61 @@
         let unsubUser = null;
         let unsubMatches = null;
 
-        // ===== AUTHENTICATION =====
+        function phoneToAuthEmail(rawPhone) {
+            const digits = String(rawPhone || "").replace(/\D/g, "");
+            return `${digits}@mlbb.local`;
+        }
+
         function toggleAuthMode() {
             isRegister = !isRegister;
-            document.getElementById('registerExtra').style.display = isRegister ? 'block' : 'none';
+            document.getElementById('nameFieldGroup').style.display = isRegister ? 'block' : 'none';
             document.getElementById('authTitle').innerText = isRegister ? 'Daftar Akun Pemain' : 'Login Pemain';
             document.getElementById('authSub').innerText = isRegister
-                ? 'Daftar terlebih dahulu untuk mulai nge-pick tim & hero MLBB.'
-                : 'Masuk menggunakan akun pemain Anda.';
+                ? 'Isi nama, no. HP, dan password untuk mulai bermain.'
+                : 'Masukkan no. HP dan password akun kamu.';
             document.getElementById('authSubmitBtn').innerText = isRegister ? 'Daftar Sekarang' : 'Masuk';
             document.getElementById('authSwitchText').innerHTML = isRegister
                 ? 'Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>'
                 : 'Belum punya akun? <span onclick="toggleAuthMode()">Daftar sekarang</span>';
         }
 
-        async function submitEmailAuth() {
-            const email = document.getElementById('authEmail').value.trim();
+        async function submitSimpleAuth() {
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('authPhone').value.trim();
             const pass = document.getElementById('authPassword').value;
-            const nick = document.getElementById('regNickname').value.trim();
-            const wallet = document.getElementById('regWallet').value.trim();
+            const cleanDigits = phone.replace(/\D/g, "");
 
-            if (!email || !pass) return alert("Email dan password wajib diisi.");
+            if (cleanDigits.length < 8) return alert("Masukkan nomor HP yang valid.");
+            if (!pass || pass.length < 6) return alert("Password minimal 6 karakter.");
 
+            const authEmail = phoneToAuthEmail(cleanDigits);
             const btn = document.getElementById('authSubmitBtn');
             btn.disabled = true;
 
             try {
                 if (isRegister) {
-                    if (!nick || !wallet) {
+                    if (!name) {
                         btn.disabled = false;
-                        return alert("Lengkapi Nickname dan No. HP / E-Wallet saat mendaftar.");
+                        return alert("Nama wajib diisi saat mendaftar.");
                     }
-                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                    await cred.user.updateProfile({ displayName: nick });
+                    const cred = await auth.createUserWithEmailAndPassword(authEmail, pass);
+                    await cred.user.updateProfile({ displayName: name });
                     await db.collection("users").doc(cred.user.uid).set({
                         uid: cred.user.uid,
-                        email: email,
-                        displayName: nick,
-                        phone: wallet,
+                        displayName: name,
+                        phone: cleanDigits,
                         balance: 0,
                         role: "player",
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 } else {
-                    await auth.signInWithEmailAndPassword(email, pass);
+                    await auth.signInWithEmailAndPassword(authEmail, pass);
                 }
             } catch (err) {
-                alert("Terjadi kesalahan: " + err.message);
+                alert("Gagal: " + err.message);
             } finally {
                 btn.disabled = false;
             }
-        }
-
-        function loginGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(err => alert("Gagal login Google: " + err.message));
         }
 
         auth.onAuthStateChanged(async (user) => {
@@ -635,8 +573,7 @@
                 if (!snap.exists) {
                     await ref.set({
                         uid: user.uid,
-                        email: user.email || "",
-                        displayName: user.displayName || (user.email ? user.email.split("@")[0] : "Player"),
+                        displayName: user.displayName || "Pemain",
                         phone: "",
                         balance: 0,
                         role: "player",
@@ -659,7 +596,6 @@
             if (confirm("Keluar dari akun pemain?")) auth.signOut();
         }
 
-        // ===== REALTIME PROFILE & MATCHES =====
         function startRealtimeListeners() {
             if (unsubUser) unsubUser();
             if (unsubMatches) unsubMatches();
@@ -757,7 +693,6 @@
             }).join("");
         }
 
-        // ===== PARLAY SLIP =====
         function selectPick(matchId, marketIdx, optionIdx) {
             const match = matchesData.find(m => m.id === matchId);
             if (!match || match.status === "closed" || match.status === "finished") return;
@@ -860,7 +795,7 @@
 
                 await db.collection("parlay_tickets").add({
                     uid: currentUser.uid,
-                    userName: currentProfile?.displayName || currentUser.email,
+                    userName: currentProfile?.displayName || "Pemain",
                     picks: selectedPicks,
                     stake: stake,
                     totalOdds: totalOdds,
@@ -872,13 +807,12 @@
                 selectedPicks = [];
                 renderMatches();
                 renderSlip();
-                alert("Tiket berhasil dipasang! Menunggu hasil pertandingan dari admin.");
+                alert("Tiket berhasil dipasang!");
             } catch (err) {
                 alert("Gagal memasang tiket: " + err.message);
             }
         }
 
-        // ===== DEPOSIT QRIS & WITHDRAW =====
         function setDepoAmount(val) {
             document.getElementById('depoAmountInput').value = val;
         }
@@ -921,7 +855,7 @@
                 await db.collection("transactions").add({
                     type: "deposit",
                     uid: currentUser.uid,
-                    userName: currentProfile?.displayName || currentUser.email,
+                    userName: currentProfile?.displayName || "Pemain",
                     amount: amount,
                     proofImage: proofBase64,
                     status: "pending",
@@ -930,7 +864,7 @@
 
                 fileEl.value = "";
                 closeOverlay('depoModal');
-                alert("Bukti transfer QRIS terkirim! Tunggu admin memverifikasi & mengisi saldo Anda.");
+                alert("Bukti transfer QRIS terkirim! Tunggu admin mengisi saldo.");
             } catch (err) {
                 alert("Gagal mengirim deposit: " + err.message);
             } finally {
@@ -947,7 +881,7 @@
 
             if (amount < 20000) return alert("Minimal withdraw adalah Rp 20.000.");
             if (!method || !account) return alert("Lengkapi metode dan nomor tujuan withdraw.");
-            if (bal < amount) return alert("Saldo Anda tidak cukup untuk withdraw nominal tersebut.");
+            if (bal < amount) return alert("Saldo tidak cukup.");
 
             try {
                 await db.collection("users").doc(currentUser.uid).update({
@@ -957,7 +891,7 @@
                 await db.collection("transactions").add({
                     type: "withdraw",
                     uid: currentUser.uid,
-                    userName: currentProfile?.displayName || currentUser.email,
+                    userName: currentProfile?.displayName || "Pemain",
                     amount: amount,
                     method: method,
                     account: account,
@@ -966,13 +900,12 @@
                 });
 
                 closeOverlay('wdModal');
-                alert("Permintaan withdraw berhasil dikirim ke admin.");
+                alert("Permintaan withdraw terkirim ke admin.");
             } catch (err) {
                 alert("Gagal mengajukan withdraw: " + err.message);
             }
         }
 
-        // ===== HISTORY =====
         function toggleHistoryView() {
             isHistoryOpen = !isHistoryOpen;
             document.getElementById('matchesView').style.display = isHistoryOpen ? 'none' : 'block';
@@ -1017,7 +950,6 @@
             }).join("");
         }
 
-        // ===== HELPERS =====
         function openOverlay(id) { document.getElementById(id).classList.add('show'); }
         function closeOverlay(id) { document.getElementById(id).classList.remove('show'); }
         function backdropClose(e, id) { if (e.target.id === id) closeOverlay(id); }

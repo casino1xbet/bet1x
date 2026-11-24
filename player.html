@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VIP 3D Blackjack</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { 
+            background: #0a1118 url('https://www.transparenttextures.com/patterns/stardust.png');
+            color: #fff; display: flex; justify-content: center; align-items: center; 
+            height: 100vh; overflow: hidden; perspective: 1200px;
+        }
+        .game-container { width: 100%; max-width: 600px; height: 100vh; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+
+        .top-ui { position: absolute; top: 0; width: 100%; padding: 15px; z-index: 50; display: flex; justify-content: space-between; align-items: flex-start;}
+        .player-info { background: rgba(0,0,0,0.7); border: 1px solid #d4af37; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;}
+        .btn-refresh { background: #d4af37; color: #000; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-weight: bold; font-size: 14px;}
+        
+        .tourney-box { background: linear-gradient(to bottom, #0f2a45, #081626); border: 2px solid #5a7c99; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+        .tourney-box span { color: #38bdf8; font-weight: bold; font-size: 1.1rem;}
+
+        .table-wrapper { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95vw; max-width: 600px; height: 500px; z-index: 10; }
+        .table-3d {
+            width: 100%; height: 100%; border-radius: 50% / 40%;
+            background: #0b4f6c; border: 25px solid #3b2110;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 0 0 6px #1a1a1a, 0 30px 60px rgba(0,0,0,0.9);
+            transform: rotateX(25deg); position: relative; overflow: hidden;
+        }
+        .table-svg { position: absolute; width: 100%; height: 100%; top:0; left:0; pointer-events: none; opacity: 0.3;}
+        .dealer-zone { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .player-zone { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .score-badge { background: rgba(0,0,0,0.7); padding: 4px 15px; border-radius: 15px; color: #fff; font-weight: bold; font-size: 1.1rem; display: inline-block; border: 1px solid #555; }
+        .cards-wrapper { display: flex; justify-content: center; height: 110px; position: relative; width: 200px; margin: 0 auto; }
+
+        .card { 
+            width: 75px; height: 110px; background: #fff; border-radius: 5px; position: absolute;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6); border: 1px solid #999;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 5px;
+            font-weight: bold; font-size: 1.2rem; transform: rotateX(-25deg); transition: all 0.4s ease-out;
+        }
+        .card.red { color: #d32f2f; } .card.black { color: #111; }
+        .card-back { background: repeating-linear-gradient(45deg, #b91c1c, #b91c1c 5px, #7f1d1d 5px, #7f1d1d 10px); border: 2px solid #fff; }
+
+        .table-bet-area { position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+        .chip-stack { width: 35px; height: 35px; border-radius: 50%; background: #eab308; border: 3px dashed #fff;
+            box-shadow: 0 3px 0 #854d0e, 0 6px 0 #854d0e, 0 9px 10px rgba(0,0,0,0.8); transform: rotateX(-25deg); }
+
+        .card-shoe { position: absolute; top: 5%; right: 15%; width: 60px; height: 90px; background: linear-gradient(to right, #ddd, #fff); transform: rotateX(-25deg) rotateZ(15deg); border-radius: 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+        
+        .bottom-panel { position: absolute; bottom: 0; width: 100%; padding: 15px; z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 10px;}
+        .avatar-container { position: relative; margin-bottom: -10px; z-index: 60; text-align: center;}
+        .avatar { width: 60px; height: 60px; background: #4b5563 center/cover; border-radius: 50%; border: 3px solid #38bdf8; margin: 0 auto;}
+        .avatar-name { background: rgba(0,0,0,0.8); padding: 3px 15px; border-radius: 10px; font-size: 0.8rem; margin-top: -10px; position: relative; border: 1px solid #555;}
+
+        .chip-selector { display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; }
+        .ui-chip { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; cursor: pointer; border: 3px dashed #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.8); font-size: 0.9rem; transition: 0.1s;}
+        .ui-chip:active { transform: translateY(5px); box-shadow: none;}
+        .ui-chip.active { border: 3px solid #38bdf8; transform: scale(1.1); }
+        .c1k { background: #6b21a8; } .c5k { background: #b45309; } .c10k { background: #15803d; }
+
+        .action-bar { display: flex; width: 100%; gap: 5px; background: rgba(0,0,0,0.8); padding: 5px; border-radius: 10px; border: 1px solid #333;}
+        .btn-action { flex: 1; padding: 15px 5px; border: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; color: #fff; transition: 0.2s; display: flex; justify-content: center; align-items: center;}
+        .btn-deal { background: linear-gradient(to bottom, #0ea5e9, #0369a1); border: 1px solid #38bdf8; }
+        .btn-hit { background: linear-gradient(to bottom, #22c55e, #15803d); border: 1px solid #4ade80; }
+        .btn-stand { background: linear-gradient(to bottom, #ef4444, #b91c1c); border: 1px solid #f87171; }
+        .btn-clear { background: linear-gradient(to bottom, #64748b, #334155); border: 1px solid #94a3b8; }
+        .btn-action:disabled { background: #1e293b; color: #475569; border: 1px solid #334155; cursor: not-allowed;}
+        .btn-icon { width: 50px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; cursor: pointer;}
+
+        /* LOGIN */
+        .modal { position: fixed; inset: 0; background: #f0f4f9; z-index: 100; display: flex; justify-content: center; align-items: center; }
+        .modal-box { background: #fff; padding: 40px 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); text-align: center; color: #202124; }
+        .modal-box h2 { font-size: 24px; font-weight: 500; margin-bottom: 8px; }
+        .modal-box p { font-size: 14px; color: #5f6368; margin-bottom: 24px; }
+        .login-btn { width: 100%; padding: 12px; border-radius: 24px; border: 1px solid #dadce0; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
+        .login-btn:hover { background: #f8f9fa; }
+        .login-btn.google { color: #3c4043; }
+        .login-btn.facebook { background: #1877f2; color: white; border: none; }
+        .login-btn.email { background: #1a73e8; color: white; border: none; }
+        .divider { display: flex; align-items: center; margin: 20px 0; color: #5f6368; font-size: 13px; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #dadce0; }
+        .divider span { padding: 0 12px; }
+        .email-form { display: none; text-align: left; }
+        .email-form input { width: 100%; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; }
+        .email-form button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 24px; font-weight: 500; cursor: pointer; margin-top: 8px; }
+        .back-btn { background: none; border: none; color: #1a73e8; font-size: 14px; cursor: pointer; margin-top: 16px; }
+        .error-msg { color: #d93025; font-size: 13px; margin-top: 8px; display: none; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="modal" id="authModal">
+    <div class="modal-box">
+        <div style="font-size: 40px; margin-bottom: 10px;">♠️</div>
+        <h2>Masuk ke VIP Casino</h2>
+        <p>Gunakan akun Google, Facebook, atau Email</p>
+
+        <div id="providerButtons">
+            <button class="login-btn google" onclick="loginWithGoogle()">
+                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Lanjutkan dengan Google
+            </button>
+            <button class="login-btn facebook" onclick="loginWithFacebook()">
+                Lanjutkan dengan Facebook
+            </button>
+            <div class="divider"><span>atau</span></div>
+            <button class="login-btn email" onclick="showEmailForm()">Lanjutkan dengan Email</button>
+        </div>
+
+        <div class="email-form" id="emailForm">
+            <input type="email" id="emailInput" placeholder="Email">
+            <input type="password" id="passwordInput" placeholder="Password">
+            <button onclick="loginWithEmail()">Masuk / Daftar</button>
+            <button class="back-btn" onclick="hideEmailForm()">← Kembali</button>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+    </div>
+</div>
+
+<div class="game-container" id="gameContainer" style="display:none;">
+    <div class="top-ui">
+        <div class="player-info">
+            <span id="balanceDisplay">Rp 0</span>
+            <button class="btn-refresh" onclick="refreshBalance()" title="Refresh Saldo">🔄</button>
+        </div>
+        <div class="tourney-box">
+            <div style="font-size: 0.7rem; color:#aaa;">Turnamen Bintang</div>
+            <span id="playerNameDisplay">Guest</span>
+            <div style="font-size: 0.7rem; color:#fbbf24;" id="scoreDisplay">🪙 0</div>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <div class="table-3d">
+            <svg class="table-svg" viewBox="0 0 600 500">
+                <path d="M 50 250 A 250 150 0 0 0 550 250" fill="none" stroke="#fff" stroke-width="2" />
+                <path d="M 100 250 A 200 100 0 0 0 500 250" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="5,5" />
+                <path id="arc1" d="M 150 200 A 150 100 0 0 0 450 200" fill="none" />
+                <text font-size="16" fill="#fff" font-weight="bold" font-family="serif">
+                    <textPath href="#arc1" startOffset="50%" text-anchor="middle">BLACKJACK PAYS 3 TO 2</textPath>
+                </text>
+            </svg>
+            <div class="dealer-zone">
+                <div class="score-badge" id="dealerScore">0</div>
+                <div class="cards-wrapper" id="dealerCards"></div>
+            </div>
+            <div class="card-shoe"></div>
+            <div class="table-bet-area" id="tableBets"></div>
+            <div class="player-zone">
+                <div class="cards-wrapper" id="playerCards"></div>
+                <div class="score-badge" id="playerScore" style="margin-top: 5px;">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-panel">
+        <div class="avatar-container">
+            <div class="avatar" id="avatarImg"></div>
+            <div class="avatar-name"><span id="bottomPlayerName">Guest</span> <br> 🪙 <span id="bottomBalance">0</span></div>
+        </div>
+        <div class="chip-selector">
+            <div class="ui-chip c1k" onclick="selectBet(1000, this)">1K</div>
+            <div class="ui-chip c5k active" onclick="selectBet(5000, this)">5K</div>
+            <div class="ui-chip c10k" onclick="selectBet(10000, this)">10K</div>
+        </div>
+        <div class="action-bar">
+            <button class="btn-action btn-clear" onclick="clearBet()" id="btnClear">BERSIHKAN</button>
+            <button class="btn-action btn-deal" id="btnDeal" onclick="startGame()" disabled>PASANG</button>
+            <button class="btn-action btn-hit" id="btnHit" onclick="playerHit()" style="display:none;">HIT</button>
+            <button class="btn-action btn-stand" id="btnStand" onclick="playerStand()" style="display:none;">STAND</button>
+            <div class="btn-icon" onclick="logout()" title="Keluar">🚪</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAzJ6p_stDYeaviIK1CapIpz_pc8onN5hM",
+        authDomain: "spaceman-sukses.firebaseapp.com",
+        projectId: "spaceman-sukses",
+        storageBucket: "spaceman-sukses.firebasestorage.app",
+        messagingSenderId: "442967300277",
+        appId: "1:442967300277:web:65b99aebdbc478455586fc"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let balance = 0;
+    let currentBet = 5000;
+    let isPlaying = false;
+    let playerHand = [];
+    let dealerHand = [];
+    let targetOutcome = "random";
+    let is1v1 = false;
+    let forcedDealerCards = [];
+
+    const suits = ['♠', '♥', '♦', '♣'];
+    const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+    // ===== AUTH =====
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            await ensureUserData(user);
+            showGame();
+        } else {
+            document.getElementById('authModal').style.display = 'flex';
+            document.getElementById('gameContainer').style.display = 'none';
+        }
+    });
+
+    async function ensureUserData(user) {
+        const userRef = db.collection("users").doc(user.uid);
+        const doc = await userRef.get();
+        
+        if (!doc.exists) {
+            await userRef.set({
+                uid: user.uid,
+                email: user.email || "",
+                displayName: user.displayName || user.email?.split('@')[0] || "Player",
+                photoURL: user.photoURL || "",
+                balance: 100000,
+                provider: user.providerData[0]?.providerId || "password",
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                forcedOutcome: "random",
+                is1v1: false,
+                forcedDealerCards: [],
+                stats: { win: 0, lose: 0, push: 0, totalBet: 0, totalWin: 0 }
+            });
+            balance = 100000;
+        } else {
+            const data = doc.data();
+            balance = data.balance || 0;
+            await userRef.update({ lastLogin: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+    }
+
+    function showGame() {
+        document.getElementById('authModal').style.display = 'none';
+        document.getElementById('gameContainer').style.display = 'block';
+        document.getElementById('btnDeal').disabled = false;
+
+        const name = currentUser.displayName || currentUser.email?.split('@')[0] || "Player";
+        document.getElementById('playerNameDisplay').innerText = name;
+        document.getElementById('bottomPlayerName').innerText = name;
+
+        if (currentUser.photoURL) {
+            document.getElementById('avatarImg').style.backgroundImage = `url('${currentUser.photoURL}')`;
+        } else {
+            document.getElementById('avatarImg').style.backgroundImage = `url('https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.uid}')`;
+        }
+
+        updateBalance();
+
+        // Realtime
+        db.collection("users").doc(currentUser.uid).onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                balance = data.balance || 0;
+                updateBalance();
+            }
+        });
+    }
+
+    function loginWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(err => alert(err.message));
+    }
+
+    function loginWithFacebook() {
+        const provider = new firebase.auth.FacebookAuthProvider();
+        auth.signInWithPopup(provider).catch(err => alert(err.message));
+    }
+
+    function showEmailForm() {
+        document.getElementById('providerButtons').style.display = 'none';
+        document.getElementById('emailForm').style.display = 'block';
+    }
+    function hideEmailForm() {
+        document.getElementById('providerButtons').style.display = 'block';
+        document.getElementById('emailForm').style.display = 'none';
+        document.getElementById('errorMsg').style.display = 'none';
+    }
+
+    function loginWithEmail() {
+        const email = document.getElementById('emailInput').value.trim();
+        const password = document.getElementById('passwordInput').value;
+        const errorEl = document.getElementById('errorMsg');
+
+        if (!email || !password) {
+            errorEl.innerText = "Email dan password wajib diisi";
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        auth.signInWithEmailAndPassword(email, password)
+            .catch(() => {
+                auth.createUserWithEmailAndPassword(email, password)
+                    .catch(err => {
+                        errorEl.innerText = err.message;
+                        errorEl.style.display = 'block';
+                    });
+            });
+    }
+
+    function logout() {
+        if (confirm("Keluar dari permainan?")) auth.signOut();
+    }
+
+    function updateBalance() { 
+        document.getElementById('balanceDisplay').innerText = "Rp " + balance.toLocaleString('id-ID'); 
+        document.getElementById('bottomBalance').innerText = balance.toLocaleString('id-ID');
+        document.getElementById('scoreDisplay').innerText = "🪙 " + Math.floor(balance/1000);
+    }
+
+    function refreshBalance() {
+        db.collection("users").doc(currentUser.uid).get().then((doc) => {
+            if (doc.exists) {
+                balance = doc.data().balance || 0;
+                updateBalance();
+                alert("Saldo berhasil di-refresh!");
+            }
+        });
+    }
+
+    function selectBet(amt, el) {
+        if (isPlaying) return;
+        currentBet = amt;
+        document.querySelectorAll('.ui-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('tableBets').innerHTML = `<div class="chip-stack"></div><div class="chip-stack"></div><div class="chip-stack"></div>`;
+    }
+    function clearBet() {
+        if (isPlaying) return;
+        document.getElementById('tableBets').innerHTML = '';
+    }
+
+    function getRiggedHands(target) {
+        let p = [], d = [];
+        if (target === 'player_win') {
+            p = [{suit:'♠', val:'K'}, {suit:'♥', val:'Q'}];
+            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'9'}];
+        } else if (target === 'dealer_win') {
+            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'7'}];
+            d = [{suit:'♦', val:'K'}, {suit:'♣', val:'Q'}];
+        } else if (target === 'push') {
+            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'9'}];
+            d = [{suit:'♦', val:'J'}, {suit:'♣', val:'9'}];
+        } else if (target === 'player_blackjack') {
+            p = [{suit:'♠', val:'A'}, {suit:'♥', val:'K'}];
+            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'7'}];
+        } else if (target === 'player_bust') {
+            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'5'}];
+            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'6'}];
+        } else if (target === 'dealer_bust') {
+            p = [{suit:'♠', val:'10'}, {suit:'♥', val:'8'}];
+            d = [{suit:'♦', val:'10'}, {suit:'♣', val:'6'}];
+        } else {
+            let deck = [];
+            for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
+            deck.sort(() => Math.random() - 0.5);
+            p = [deck.pop(), deck.pop()];
+            d = [deck.pop(), deck.pop()];
+        }
+        return { p, d };
+    }
+
+    function calcScore(hand) {
+        let score = 0, aces = 0;
+        for (let card of hand) {
+            if (card.val === 'A') { aces++; score += 11; }
+            else if (['K','Q','J'].includes(card.val)) score += 10;
+            else score += parseInt(card.val);
+        }
+        while (score > 21 && aces > 0) { score -= 10; aces--; }
+        return score;
+    }
+
+    function renderCard(container, card, index, hidden = false) {
+        const isRed = card.suit === '♥' || card.suit === '♦';
+        let div = document.createElement('div');
+        div.className = `card ${isRed ? 'red' : 'black'}`;
+        div.style.left = `${index * 30}px`; 
+        div.style.zIndex = index;
+        if (hidden) div.classList.add('card-back');
+        else div.innerHTML = `<div>\( {card.val}<br> \){card.suit}</div><div style="text-align:right; transform:rotate(180deg);">\( {card.val}<br> \){card.suit}</div>`;
+        
+        div.style.opacity = 0;
+        div.style.transform = `translate(100px, -100px) rotateX(-25deg) rotateZ(45deg) scale(0.5)`;
+        container.appendChild(div);
+        setTimeout(() => {
+            div.style.opacity = 1;
+            div.style.transform = `rotateX(-25deg) translateY(0) scale(1)`;
+        }, 50 + (index * 200));
+    }
+
+    async function startGame() {
+        if (isPlaying) return;
+        if (currentBet <= 0) return alert("Pilih chip taruhan!");
+        if (balance < currentBet) return alert("Saldo tidak cukup!");
+
+        isPlaying = true;
+        playerHand = []; dealerHand = [];
+        document.getElementById('playerCards').innerHTML = '';
+        document.getElementById('dealerCards').innerHTML = '';
+        
+        balance -= currentBet;
+        updateBalance();
+        await db.collection("users").doc(currentUser.uid).update({ 
+            balance: balance,
+            "stats.totalBet": firebase.firestore.FieldValue.increment(currentBet)
+        });
+
+        // Ambil setting per user
+        const userDoc = await db.collection("users").doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        targetOutcome = userData.forcedOutcome || "random";
+        is1v1 = userData.is1v1 || false;
+        forcedDealerCards = userData.forcedDealerCards || [];
+
+        let hands;
+        if (is1v1 && forcedDealerCards.length >= 2) {
+            // Mode 1vs1 → pakai kartu dealer dari admin
+            let deck = [];
+            for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
+            deck.sort(() => Math.random() - 0.5);
+            playerHand = [deck.pop(), deck.pop()];
+            dealerHand = forcedDealerCards.slice(0, 2);
+        } else {
+            hands = getRiggedHands(targetOutcome);
+            playerHand = hands.p;
+            dealerHand = hands.d;
+        }
+
+        document.getElementById('btnDeal').style.display = 'none';
+        document.getElementById('btnClear').style.display = 'none';
+        document.getElementById('btnHit').style.display = 'flex';
+        document.getElementById('btnStand').style.display = 'flex';
+
+        renderCard(document.getElementById('playerCards'), playerHand[0], 0);
+        renderCard(document.getElementById('playerCards'), playerHand[1], 1);
+        renderCard(document.getElementById('dealerCards'), dealerHand[0], 0);
+        renderCard(document.getElementById('dealerCards'), dealerHand[1], 1, true);
+
+        document.getElementById('playerScore').innerText = calcScore(playerHand);
+
+        if (calcScore(playerHand) === 21) setTimeout(() => playerStand(), 1500);
+    }
+
+    function playerHit() {
+        if (!isPlaying) return;
+        let newCard;
+        if (targetOutcome === 'player_bust') {
+            newCard = {suit:'♦', val:'10'};
+        } else {
+            let deck = [];
+            for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
+            newCard = deck[Math.floor(Math.random() * deck.length)];
+        }
+        playerHand.push(newCard);
+        renderCard(document.getElementById('playerCards'), newCard, playerHand.length - 1);
+        document.getElementById('playerScore').innerText = calcScore(playerHand);
+        if (calcScore(playerHand) > 21) setTimeout(() => endGame('BUST'), 1000);
+    }
+
+    function playerStand() {
+        if (!isPlaying) return;
+        document.getElementById('btnHit').style.display = 'none';
+        document.getElementById('btnStand').style.display = 'none';
+
+        document.getElementById('dealerCards').innerHTML = '';
+        renderCard(document.getElementById('dealerCards'), dealerHand[0], 0);
+        renderCard(document.getElementById('dealerCards'), dealerHand[1], 1);
+        document.getElementById('dealerScore').innerText = calcScore(dealerHand);
+
+        setTimeout(() => {
+            let dealerScore = calcScore(dealerHand);
+
+            // Kalau 1vs1 dan admin kasih kartu tambahan
+            if (is1v1 && forcedDealerCards.length > 2) {
+                for (let i = 2; i < forcedDealerCards.length; i++) {
+                    dealerHand.push(forcedDealerCards[i]);
+                    renderCard(document.getElementById('dealerCards'), forcedDealerCards[i], i);
+                }
+                document.getElementById('dealerScore').innerText = calcScore(dealerHand);
+            } 
+            else if (targetOutcome === 'dealer_bust' && dealerScore < 17) {
+                let bustCard = {suit:'♣', val:'10'};
+                dealerHand.push(bustCard);
+                renderCard(document.getElementById('dealerCards'), bustCard, 2);
+                document.getElementById('dealerScore').innerText = calcScore(dealerHand);
+            }
+            else if (dealerScore < 17 && targetOutcome !== 'dealer_win') {
+                let deck = [];
+                for (let s of suits) for (let v of values) deck.push({suit:s, val:v});
+                let newCard = deck.pop();
+                dealerHand.push(newCard);
+                renderCard(document.getElementById('dealerCards'), newCard, 2);
+                document.getElementById('dealerScore').innerText = calcScore(dealerHand);
+            }
+
+            setTimeout(() => endGame('STAND'), 1000);
+        }, 1000);
+    }
+
+    async function endGame(reason) {
+        isPlaying = false;
+        let pScore = calcScore(playerHand);
+        let dScore = calcScore(dealerHand);
+        let winAmount = 0;
+        let msg = "";
+        let result = "lose";
+
+        if (pScore > 21) {
+            msg = "PLAYER BUST!\nDealer Menang.";
+            result = "lose";
+        } else if (dScore > 21) {
+            msg = "DEALER BUST!\nAnda Menang!";
+            winAmount = currentBet * 2;
+            result = "win";
+        } else if (pScore > dScore) {
+            if (pScore === 21 && playerHand.length === 2) {
+                msg = "BLACKJACK!\nAnda Menang 1.5x!";
+                winAmount = currentBet + (currentBet * 1.5);
+            } else {
+                msg = "ANDA MENANG!";
+                winAmount = currentBet * 2;
+            }
+            result = "win";
+        } else if (pScore < dScore) {
+            msg = "Dealer Menang.\nCoba lagi!";
+            result = "lose";
+        } else {
+            msg = "PUSH (Seri).\nTaruhan dikembalikan.";
+            winAmount = currentBet;
+            result = "push";
+        }
+
+        const updates = {};
+        if (winAmount > 0) {
+            balance += winAmount;
+            updates.balance = balance;
+            updates["stats.totalWin"] = firebase.firestore.FieldValue.increment(winAmount);
+        }
+        if (result === "win") updates["stats.win"] = firebase.firestore.FieldValue.increment(1);
+        if (result === "lose") updates["stats.lose"] = firebase.firestore.FieldValue.increment(1);
+        if (result === "push") updates["stats.push"] = firebase.firestore.FieldValue.increment(1);
+
+        // Reset forced setelah dipakai
+        updates.forcedOutcome = "random";
+        updates.is1v1 = false;
+        updates.forcedDealerCards = [];
+
+        updateBalance();
+        await db.collection("users").doc(currentUser.uid).update(updates);
+
+        setTimeout(() => {
+            alert(msg);
+            document.getElementById('btnDeal').style.display = 'flex';
+            document.getElementById('btnClear').style.display = 'flex';
+            document.getElementById('btnHit').style.display = 'none';
+            document.getElementById('btnStand').style.display = 'none';
+            document.getElementById('dealerScore').innerText = "0";
+            document.getElementById('playerScore').innerText = "0";
+            document.getElementById('dealerCards').innerHTML = '';
+            document.getElementById('playerCards').innerHTML = '';
+            document.getElementById('tableBets').innerHTML = '';
+            selectBet(currentBet, document.querySelector('.ui-chip.active'));
+        }, 500);
+    }
+</script>
+</body>
+  </html>

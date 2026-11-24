@@ -3,707 +3,1033 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLBB Parlay Arena - Player</title>
+    <title>MLBB Parlay Arena — Player</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background: #090d16; color: #f8fafc; padding-bottom: 90px; }
-        
+        :root {
+            --bg-main: #060913;
+            --bg-card: #0e1525;
+            --bg-elevated: #152036;
+            --border: rgba(148, 163, 184, 0.15);
+            --accent: #38bdf8;
+            --accent-2: #6366f1;
+            --gold: #fbbf24;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f97316;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body {
+            background: radial-gradient(circle at top, #111d38 0%, var(--bg-main) 60%);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
         /* AUTH MODAL */
-        .modal { position: fixed; inset: 0; background: rgba(6, 9, 19, 0.96); z-index: 200; display: flex; justify-content: center; align-items: center; padding: 15px; }
-        .modal-box { background: #111827; border: 1px solid #1e293b; padding: 28px 22px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-        .modal-box h2 { font-size: 1.4rem; color: #38bdf8; margin-bottom: 6px; text-align: center; }
-        .modal-box p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; text-align: center; }
-        .input-group { margin-bottom: 12px; }
-        .input-group label { display: block; font-size: 0.78rem; color: #94a3b8; margin-bottom: 4px; }
-        .input-group input, .input-group select { width: 100%; padding: 11px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 0.9rem; outline: none; }
-        .input-group input:focus { border-color: #38bdf8; }
-        .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.95rem; margin-top: 6px; }
-        .btn-google { width: 100%; padding: 11px; background: #fff; color: #1e293b; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
-        .toggle-auth { text-align: center; margin-top: 14px; font-size: 0.85rem; color: #94a3b8; }
-        .toggle-auth span { color: #38bdf8; cursor: pointer; font-weight: 600; }
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(4, 7, 15, 0.94);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .modal-overlay.show { display: flex; }
 
-        /* TOP NAVBAR */
-        .navbar { background: #111827; border-bottom: 1px solid #1e293b; padding: 12px 16px; position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
-        .brand { font-weight: 800; font-size: 1.05rem; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
-        .wallet-box { display: flex; align-items: center; gap: 8px; background: #0f172a; border: 1px solid #334155; padding: 5px 10px; border-radius: 20px; }
-        .balance-text { font-weight: 700; color: #4ade80; font-size: 0.9rem; }
-        .btn-icon-sm { background: #1e293b; color: #38bdf8; border: 1px solid #334155; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+        .auth-card {
+            background: linear-gradient(180deg, #121c33 0%, #0b1120 100%);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 410px;
+            padding: 28px 22px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+        }
+        .auth-badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.14);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .auth-title { font-size: 1.45rem; font-weight: 800; margin-bottom: 4px; }
+        .auth-sub { font-size: 0.84rem; color: var(--muted); margin-bottom: 18px; }
 
-        /* WALLET ACTION BAR */
-        .action-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 12px 16px; background: #0d1320; border-bottom: 1px solid #1e293b; }
-        .strip-btn { padding: 9px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-depo { background: #16a34a; color: #fff; }
-        .btn-wd { background: #ea580c; color: #fff; }
-        .btn-hist { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
+        .btn-google {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 11px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: transform 0.12s ease, opacity 0.12s ease;
+        }
+        .btn-google:active { transform: scale(0.98); }
 
-        /* CONTAINER & MATCH CARD */
-        .container { max-width: 720px; margin: 0 auto; padding: 14px; }
-        .section-title { font-size: 0.95rem; font-weight: 700; color: #cbd5e1; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .match-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-        .match-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
-        .status-badge { padding: 2px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; font-size: 0.7rem; }
-        .status-upcoming { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
-        .status-live { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-        .status-closed { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+        .or-divider {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--muted); font-size: 0.75rem; margin: 16px 0;
+        }
+        .or-divider::before, .or-divider::after {
+            content: ""; flex: 1; height: 1px; background: var(--border);
+        }
 
-        .teams-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-        .team-box { display: flex; flex-direction: column; align-items: center; width: 40%; text-align: center; }
-        .team-logo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #1e293b; border: 2px solid #334155; margin-bottom: 6px; }
-        .team-name { font-weight: 700; font-size: 0.92rem; }
-        .vs-tag { font-weight: 800; color: #64748b; font-size: 0.9rem; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label {
+            display: block; font-size: 0.76rem; color: #cbd5e1;
+            margin-bottom: 5px; font-weight: 600;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 11px 13px;
+            background: rgba(6, 10, 20, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+        .form-group input:focus { border-color: var(--accent); }
 
-        /* MARKETS & ODDS */
-        .market-block { background: #0b101b; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; margin-top: 8px; }
-        .market-title { font-size: 0.78rem; color: #94a3b8; font-weight: 600; margin-bottom: 8px; }
-        .odds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 6px; }
-        .odd-btn { background: #161f33; border: 1px solid #293548; border-radius: 6px; padding: 8px 6px; color: #f8fafc; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.15s; }
-        .odd-btn:hover { border-color: #38bdf8; }
-        .odd-btn.selected { background: #0284c7; border-color: #7dd3fc; color: #fff; }
-        .odd-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .odd-label { font-size: 0.75rem; color: #cbd5e1; margin-bottom: 2px; text-align: center; }
-        .odd-btn.selected .odd-label { color: #fff; }
-        .odd-val { font-weight: 800; font-size: 0.9rem; color: #fbbf24; }
-        .odd-btn.selected .odd-val { color: #fff; }
+        .btn-main {
+            width: 100%;
+            padding: 12px;
+            border-radius: 11px;
+            border: none;
+            background: linear-gradient(135deg, #0ea5e9 0%, #4f46e5 100%);
+            color: #fff;
+            font-weight: 800;
+            font-size: 0.92rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
+            transition: transform 0.12s ease, opacity 0.15s ease;
+        }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-main:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .auth-switch {
+            text-align: center; margin-top: 14px; font-size: 0.83rem; color: var(--muted);
+        }
+        .auth-switch span { color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: underline; }
+
+        /* TOP HEADER */
+        .topbar {
+            position: sticky; top: 0; z-index: 60;
+            background: rgba(9, 14, 28, 0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .brand-wrap { display: flex; align-items: center; gap: 9px; }
+        .brand-logo {
+            width: 34px; height: 34px; border-radius: 10px;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+        }
+        .brand-text { font-weight: 800; font-size: 0.98rem; letter-spacing: 0.3px; }
+        .brand-sub { font-size: 0.68rem; color: var(--accent); font-weight: 600; }
+
+        .wallet-pill {
+            display: flex; align-items: center; gap: 7px;
+            background: var(--bg-elevated);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 5px 8px 5px 12px;
+            border-radius: 999px;
+        }
+        .balance-val { font-weight: 800; font-size: 0.88rem; color: #4ade80; }
+        .circle-btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.9);
+            color: #e2e8f0; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.82rem; transition: background 0.15s ease;
+        }
+        .circle-btn:hover { background: #1e293b; }
+
+        /* QUICK ACTIONS */
+        .quick-bar {
+            max-width: 760px; margin: 12px auto 0; padding: 0 14px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+        }
+        .q-btn {
+            padding: 10px 8px; border-radius: 11px; border: 1px solid var(--border);
+            font-weight: 700; font-size: 0.82rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: transform 0.12s ease;
+        }
+        .q-btn:active { transform: scale(0.97); }
+        .q-depo { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border-color: rgba(74, 222, 128, 0.35); }
+        .q-wd { background: linear-gradient(135deg, #ea580c, #c2410c); color: #fff; border-color: rgba(251, 146, 60, 0.35); }
+        .q-hist { background: var(--bg-card); color: #e2e8f0; }
+
+        /* MAIN CONTAINER */
+        .page-wrap { max-width: 760px; margin: 0 auto; padding: 14px; }
+        .section-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px;
+        }
+        .section-head h2 { font-size: 1rem; font-weight: 800; }
+        .player-chip {
+            font-size: 0.76rem; color: var(--accent);
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 4px 10px; border-radius: 999px; font-weight: 600;
+        }
+
+        /* MATCH CARD */
+        .match-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+        }
+        .match-top {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.74rem; color: var(--muted);
+            padding-bottom: 10px; margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            gap: 8px;
+        }
+        .badge-status {
+            padding: 3px 9px; border-radius: 999px;
+            font-weight: 800; font-size: 0.68rem; white-space: nowrap;
+        }
+        .st-upcoming { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        .st-live { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .st-closed { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+
+        .vs-stage {
+            display: grid; grid-template-columns: 1fr auto 1fr;
+            align-items: center; gap: 8px; margin-bottom: 14px;
+        }
+        .team-col { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .team-avatar {
+            width: 54px; height: 54px; border-radius: 14px;
+            object-fit: cover; background: var(--bg-elevated);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            margin-bottom: 6px;
+        }
+        .team-title { font-weight: 800; font-size: 0.92rem; line-height: 1.25; }
+        .vs-pill {
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            color: var(--gold); font-weight: 900; font-size: 0.78rem;
+            padding: 5px 10px; border-radius: 8px;
+        }
+
+        /* MARKET & ODDS */
+        .market-box {
+            background: rgba(7, 11, 22, 0.75);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 9px;
+        }
+        .market-name {
+            font-size: 0.78rem; font-weight: 700; color: #cbd5e1;
+            margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+        }
+        .odds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+            gap: 7px;
+        }
+        .odd-btn {
+            background: var(--bg-elevated);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 9px;
+            padding: 9px 7px;
+            color: var(--text);
+            cursor: pointer;
+            display: flex; flex-direction: column; align-items: center;
+            transition: all 0.14s ease;
+        }
+        .odd-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+        .odd-btn.active {
+            background: linear-gradient(135deg, #0284c7, #4f46e5);
+            border-color: #7dd3fc;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+        }
+        .odd-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+        .odd-opt { font-size: 0.75rem; color: #e2e8f0; font-weight: 600; text-align: center; }
+        .odd-mult { font-size: 0.92rem; font-weight: 900; color: var(--gold); margin-top: 2px; }
+        .odd-btn.active .odd-mult { color: #ffffff; }
 
         /* PARLAY SLIP BAR */
-        .slip-fab { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: linear-gradient(135deg, #1d4ed8, #0284c7); color: #fff; padding: 13px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(2, 132, 199, 0.5); z-index: 90; cursor: pointer; font-weight: 700; }
-        .slip-drawer { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 150; display: none; justify-content: center; align-items: flex-end; }
-        .slip-content { background: #111827; width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 20px; max-height: 88vh; overflow-y: auto; border-top: 1px solid #334155; }
-        .slip-item { background: #0f172a; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .remove-pick { color: #f87171; background: none; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; padding: 4px; }
+        .slip-bar {
+            position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 28px); max-width: 520px;
+            background: linear-gradient(135deg, #0284c7 0%, #4338ca 100%);
+            color: #fff; border-radius: 15px; padding: 13px 18px;
+            display: none; justify-content: space-between; align-items: center;
+            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
+            z-index: 90; cursor: pointer; font-weight: 800; font-size: 0.9rem;
+        }
+        .slip-bar.show { display: flex; }
 
-        /* QRIS & SUBMODALS */
-        .qris-box { background: #fff; padding: 12px; border-radius: 12px; text-align: center; margin: 12px 0; }
-        .qris-box img { width: 210px; height: 210px; object-fit: contain; }
-        .preset-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
-        .preset-btn { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 7px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
-        
-        /* TICKET HISTORY */
-        .ticket-card { background: #111827; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; margin-bottom: 10px; font-size: 0.85rem; }
-        .badge-win { color: #4ade80; font-weight: 700; }
-        .badge-lose { color: #f87171; font-weight: 700; }
-        .badge-pending { color: #fbbf24; font-weight: 700; }
+        /* DRAWER & SUBMODALS */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(5px); z-index: 150;
+            display: none; justify-content: center; align-items: flex-end;
+        }
+        .drawer-overlay.show { display: flex; }
+        .drawer-panel {
+            background: #0e1525; border-top: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 20px 20px 0 0; width: 100%; max-width: 540px;
+            max-height: 88vh; overflow-y: auto; padding: 20px;
+        }
+        .slip-row {
+            background: #080d18; border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        .btn-del {
+            background: rgba(239, 68, 68, 0.16); color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 7px;
+            padding: 4px 8px; cursor: pointer; font-weight: 700;
+        }
+
+        .qris-card {
+            background: #ffffff; color: #0f172a;
+            border-radius: 14px; padding: 14px; text-align: center;
+            margin: 12px 0;
+        }
+        .qris-badge {
+            display: inline-block; background: #0f172a; color: #ffffff;
+            font-weight: 900; font-size: 0.72rem; letter-spacing: 1px;
+            padding: 3px 10px; border-radius: 999px; margin-bottom: 8px;
+        }
+        .qris-card img {
+            width: 215px; height: 215px; object-fit: contain;
+            border-radius: 8px; margin: 0 auto; display: block;
+        }
+        .amount-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 6px; margin-bottom: 10px;
+        }
+        .amt-chip {
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            color: #e2e8f0; border-radius: 8px; padding: 8px 4px;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer;
+        }
+        .amt-chip:hover { border-color: var(--accent); }
+
+        .history-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 13px; padding: 13px; margin-bottom: 10px;
+        }
+        .t-win { color: #4ade80; font-weight: 800; }
+        .t-lose { color: #f87171; font-weight: 800; }
+        .t-pending { color: #fbbf24; font-weight: 800; }
     </style>
 </head>
 <body>
 
-<!-- AUTH MODAL (WAJIB DAFTAR / LOGIN) -->
-<div class="modal" id="authModal">
-    <div class="modal-box">
-        <h2>⚔️ MLBB PARLAY ARENA</h2>
-        <p id="authSubtitle">Daftar akun pemain baru sebelum masuk ke arena</p>
+    <!-- MODAL WAJIB DAFTAR / LOGIN -->
+    <div class="modal-overlay" id="authModal">
+        <div class="auth-card">
+            <div class="auth-badge">MOBILE LEGENDS PARLAY</div>
+            <h1 class="auth-title" id="authTitle">Daftar Akun Pemain</h1>
+            <p class="auth-sub" id="authSub">Daftar terlebih dahulu untuk mulai nge-pick tim & hero MLBB.</p>
 
-        <button class="btn-google" onclick="loginWithGoogle()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
-            Lanjutkan dengan Google
-        </button>
+            <button class="btn-google" onclick="loginGoogle()">
+                <svg width="18" height="18" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Lanjutkan dengan Google
+            </button>
 
-        <div id="registerFields">
-            <div class="input-group">
-                <label>Username / Nickname MLBB</label>
-                <input type="text" id="regName" placeholder="Contoh: RRQ_Lemon">
+            <div class="or-divider">ATAU DAFTAR EMAIL</div>
+
+            <div id="registerExtra">
+                <div class="form-group">
+                    <label>Nickname / Nama Pemain</label>
+                    <input type="text" id="regNickname" placeholder="Contoh: SkyBreaker99">
+                </div>
+                <div class="form-group">
+                    <label>No. HP / E-Wallet (DANA / OVO / GoPay)</label>
+                    <input type="text" id="regWallet" placeholder="0812xxxxxxxx">
+                </div>
             </div>
-            <div class="input-group">
-                <label>Nomor WhatsApp / Dana / E-Wallet</label>
-                <input type="text" id="regPhone" placeholder="0812xxxxxxxx">
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="authEmail" placeholder="pemain@email.com">
             </div>
-        </div>
-
-        <div class="input-group">
-            <label>Email</label>
-            <input type="email" id="authEmail" placeholder="email@contoh.com">
-        </div>
-        <div class="input-group">
-            <label>Password (min. 6 karakter)</label>
-            <input type="password" id="authPass" placeholder="••••••••">
-        </div>
-
-        <button class="btn-primary" id="authSubmitBtn" onclick="handleEmailAuth()">Daftar & Masuk</button>
-        <div class="toggle-auth" id="authToggleText">
-            Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>
-        </div>
-    </div>
-</div>
-
-<!-- MAIN APP -->
-<div id="appContent" style="display:none;">
-    <div class="navbar">
-        <div class="brand">⚔️ MLBB PARLAY</div>
-        <div class="wallet-box">
-            <span class="balance-text" id="balanceDisplay">Rp 0</span>
-            <button class="btn-icon-sm" onclick="refreshBalance()" title="Refresh Saldo">🔄</button>
-            <button class="btn-icon-sm" onclick="logout()" title="Keluar" style="color:#f87171;">🚪</button>
-        </div>
-    </div>
-
-    <div class="action-strip">
-        <button class="strip-btn btn-depo" onclick="openModal('depoModal')">+ Deposit</button>
-        <button class="strip-btn btn-wd" onclick="openModal('wdModal')">- Withdraw</button>
-        <button class="strip-btn btn-hist" onclick="switchTab()">📜 Riwayat Tiket</button>
-    </div>
-
-    <div class="container" id="matchesSection">
-        <div class="section-title">
-            <span>🔥 Jadwal Pertandingan MLBB</span>
-            <span style="font-size:0.75rem; color:#38bdf8;" id="userGreeting">Player</span>
-        </div>
-        <div id="matchList">Memuat jadwal pertandingan...</div>
-    </div>
-
-    <div class="container" id="historySection" style="display:none;">
-        <div class="section-title">
-            <span>📜 Riwayat Parlay & Transaksi</span>
-            <button onclick="switchTab()" style="background:#1e293b; color:#38bdf8; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">← Kembali ke Jadwal</button>
-        </div>
-        <div id="ticketList">Memuat riwayat...</div>
-    </div>
-</div>
-
-<!-- SLIP PARLAY FAB -->
-<div class="slip-fab" id="slipFab" onclick="openModal('slipDrawer')">
-    <span>🎯 Slip Pilihan (<span id="slipCount">0</span> Tim/Market)</span>
-    <span>Total Kali: <span id="slipTotalOdds">1.00</span>x ▲</span>
-</div>
-
-<!-- SLIP DRAWER -->
-<div class="slip-drawer" id="slipDrawer">
-    <div class="slip-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <h3>🎟️ Tiket Parlay MLBB</h3>
-            <button onclick="closeModal('slipDrawer')" style="background:none; border:none; color:#94a3b8; font-size:1.3rem; cursor:pointer;">✕</button>
-        </div>
-        <div id="slipItemsContainer"></div>
-        <div style="background:#0f172a; padding:12px; border-radius:10px; margin-top:12px; border:1px solid #1e293b;">
-            <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:8px;">
-                <span>Total Perkalian (Odds):</span>
-                <strong style="color:#fbbf24;" id="drawerOdds">1.00x</strong>
+            <div class="form-group">
+                <label>Password (minimal 6 karakter)</label>
+                <input type="password" id="authPassword" placeholder="••••••••">
             </div>
-            <div class="input-group">
-                <label>Nominal Pasang (Min. Rp 5.000)</label>
-                <input type="number" id="betAmount" value="10000" min="5000" oninput="calcPotentialWin()">
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:8px;">
-                <span>Potensi Menang:</span>
-                <strong style="color:#4ade80;" id="potentialWin">Rp 0</strong>
+
+            <button class="btn-main" id="authSubmitBtn" onclick="submitEmailAuth()">Daftar Sekarang</button>
+
+            <div class="auth-switch" id="authSwitchText">
+                Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>
             </div>
         </div>
-        <button class="btn-primary" style="margin-top:14px;" onclick="placeParlayBet()">PASANG PARLAY SEKARANG</button>
     </div>
-</div>
 
-<!-- DEPOSIT MODAL (QRIS + BUKTI TF) -->
-<div class="modal" id="depoModal" style="display:none;">
-    <div class="modal-box" style="max-height:90vh; overflow-y:auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="color:#4ade80;">💳 Deposit QRIS</h3>
-            <button onclick="closeModal('depoModal')" style="background:none; border:none; color:#94a3b8; font-size:1.2rem; cursor:pointer;">✕</button>
-        </div>
-        <p style="text-align:left; margin-bottom:10px;">Minimal deposit <strong>Rp 10.000</strong>. Scan QRIS di bawah lalu unggah bukti transfer.</p>
-        
-        <div class="preset-row">
-            <button class="preset-btn" onclick="setDepo(10000)">10rb</button>
-            <button class="preset-btn" onclick="setDepo(25000)">25rb</button>
-            <button class="preset-btn" onclick="setDepo(50000)">50rb</button>
-            <button class="preset-btn" onclick="setDepo(100000)">100rb</button>
-        </div>
+    <!-- APLIKASI UTAMA PLAYER -->
+    <div id="playerApp" style="display:none;">
+        <header class="topbar">
+            <div class="brand-wrap">
+                <div class="brand-logo">⚡</div>
+                <div>
+                    <div class="brand-text">MLBB PARLAY</div>
+                    <div class="brand-sub">ESPORTS PICK ARENA</div>
+                </div>
+            </div>
 
-        <div class="input-group">
-            <label>Nominal Deposit (Rp)</label>
-            <input type="number" id="depoAmount" value="10000" min="10000">
-        </div>
+            <div class="wallet-pill">
+                <span class="balance-val" id="balanceDisplay">Rp 0</span>
+                <button class="circle-btn" onclick="refreshBalance()" title="Refresh Saldo">🔄</button>
+                <button class="circle-btn" onclick="logoutPlayer()" title="Keluar" style="color:#f87171;">⏻</button>
+            </div>
+        </header>
 
-        <div class="qris-box">
-            <div style="color:#0f172a; font-weight:800; font-size:0.9rem; margin-bottom:4px;">QRIS PEMBAYARAN RESMI</div>
-            <!-- QRIS Image terpasang -->
-            <img id="qrisImage" src="1000490831.jpg" alt="QRIS Pembayaran">
-            <div style="color:#475569; font-size:0.72rem; margin-top:4px;">Scan menggunakan Dana, OVO, GoPay, ShopeePay, atau Mobile Banking</div>
+        <div class="quick-bar">
+            <button class="q-btn q-depo" onclick="openOverlay('depoModal')">💳 Deposit</button>
+            <button class="q-btn q-wd" onclick="openOverlay('wdModal')">💸 Withdraw</button>
+            <button class="q-btn q-hist" onclick="toggleHistoryView()">📜 Riwayat</button>
         </div>
 
-        <div class="input-group">
-            <label>Upload Bukti Transfer (Screenshot/Foto)</label>
-            <input type="file" id="depoProof" accept="image/*">
-        </div>
+        <!-- HALAMAN JADWAL -->
+        <main class="page-wrap" id="matchesView">
+            <div class="section-head">
+                <h2>🏆 Jadwal Pertandingan MLBB</h2>
+                <span class="player-chip" id="playerTag">Pemain</span>
+            </div>
+            <div id="matchesContainer">
+                <div style="text-align:center; padding:32px; color:var(--muted);">Memuat jadwal pertandingan...</div>
+            </div>
+        </main>
 
-        <button class="btn-primary" id="btnSubmitDepo" onclick="submitDeposit()">Kirim Bukti Deposit</button>
+        <!-- HALAMAN RIWAYAT -->
+        <main class="page-wrap" id="historyView" style="display:none;">
+            <div class="section-head">
+                <h2>📜 Riwayat Tiket Parlay Saya</h2>
+                <button class="circle-btn" style="width:auto; border-radius:8px; padding:5px 10px; font-size:0.78rem;" onclick="toggleHistoryView()">← Kembali</button>
+            </div>
+            <div id="historyContainer">Memuat riwayat...</div>
+        </main>
     </div>
-</div>
 
-<!-- WITHDRAW MODAL -->
-<div class="modal" id="wdModal" style="display:none;">
-    <div class="modal-box">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="color:#fb923c;">💸 Penarikan Saldo (Withdraw)</h3>
-            <button onclick="closeModal('wdModal')" style="background:none; border:none; color:#94a3b8; font-size:1.2rem; cursor:pointer;">✕</button>
-        </div>
-        <div class="input-group">
-            <label>Nominal Withdraw (Min. Rp 20.000)</label>
-            <input type="number" id="wdAmount" value="20000" min="20000">
-        </div>
-        <div class="input-group">
-            <label>Metode Tujuan (DANA / OVO / GOPAY / BCA / BRI)</label>
-            <input type="text" id="wdMethod" placeholder="Contoh: DANA">
-        </div>
-        <div class="input-group">
-            <label>Nomor Rekening / E-Wallet & Atas Nama</label>
-            <input type="text" id="wdAccount" placeholder="0812xxxx a/n Budi">
-        </div>
-        <button class="btn-primary" style="background:#ea580c;" onclick="submitWithdraw()">Ajukan Withdraw</button>
+    <!-- FLOATING BAR SLIP PARLAY -->
+    <div class="slip-bar" id="slipBar" onclick="openOverlay('slipDrawer')">
+        <span>🎯 Slip Pick (<span id="slipCount">0</span>)</span>
+        <span>Total Kali: <span id="slipOdds">1.00</span>x ▲</span>
     </div>
-</div>
 
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAzJ6p_stDYeaviIK1CapIpz_pc8onN5hM",
-        authDomain: "spaceman-sukses.firebaseapp.com",
-        projectId: "spaceman-sukses",
-        storageBucket: "spaceman-sukses.firebasestorage.app",
-        messagingSenderId: "442967300277",
-        appId: "1:442967300277:web:65b99aebdbc478455586fc"
-    };
+    <!-- DRAWER SLIP PARLAY -->
+    <div class="drawer-overlay" id="slipDrawer" onclick="backdropClose(event, 'slipDrawer')">
+        <div class="drawer-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="font-size:1.05rem;">🎟️ Slip Pilihan Parlay</h3>
+                <button class="circle-btn" onclick="closeOverlay('slipDrawer')">✕</button>
+            </div>
 
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+            <div id="slipList"></div>
 
-    let currentUser = null;
-    let userData = null;
-    let isRegisterMode = true;
-    let matchesCache = [];
-    let slipPicks = []; // { matchId, matchTitle, marketId, marketName, optionId, optionLabel, odds }
+            <div style="background:#080d18; border:1px solid var(--border); border-radius:12px; padding:12px; margin-top:12px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.84rem; margin-bottom:10px;">
+                    <span style="color:var(--muted);">Total Perkalian (Odds)</span>
+                    <strong style="color:var(--gold);" id="drawerTotalOdds">1.00x</strong>
+                </div>
+                <div class="form-group">
+                    <label>Nominal Pasang (Min. Rp 5.000)</label>
+                    <input type="number" id="betInput" value="10000" min="5000" oninput="updatePotentialWin()">
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:6px;">
+                    <span>Estimasi Kemenangan</span>
+                    <strong style="color:#4ade80;" id="potentialWinDisplay">Rp 0</strong>
+                </div>
+            </div>
 
-    // ===== AUTHENTICATION =====
-    function toggleAuthMode() {
-        isRegisterMode = !isRegisterMode;
-        document.getElementById('registerFields').style.display = isRegisterMode ? 'block' : 'none';
-        document.getElementById('authSubtitle').innerText = isRegisterMode ? 'Daftar akun pemain baru sebelum masuk ke arena' : 'Masuk ke akun pemain Anda';
-        document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Daftar & Masuk' : 'Masuk';
-        document.getElementById('authToggleText').innerHTML = isRegisterMode 
-            ? 'Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>' 
-            : 'Belum punya akun? <span onclick="toggleAuthMode()">Daftar sekarang</span>';
-    }
+            <button class="btn-main" style="margin-top:14px;" onclick="submitParlayTicket()">PASANG TIKET SEKARANG</button>
+        </div>
+    </div>
 
-    async function handleEmailAuth() {
-        const email = document.getElementById('authEmail').value.trim();
-        const pass = document.getElementById('authPass').value;
-        const name = document.getElementById('regName').value.trim();
-        const phone = document.getElementById('regPhone').value.trim();
+    <!-- MODAL DEPOSIT QRIS (MIN 10 RIBU + BUKTI TF) -->
+    <div class="drawer-overlay" id="depoModal" onclick="backdropClose(event, 'depoModal')">
+        <div class="drawer-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="color:#4ade80; font-size:1.05rem;">💳 Deposit QRIS</h3>
+                <button class="circle-btn" onclick="closeOverlay('depoModal')">✕</button>
+            </div>
+            <p style="font-size:0.8rem; color:var(--muted); margin-bottom:10px;">
+                Minimal deposit <strong style="color:#fff;">Rp 10.000</strong>. Pilih nominal, scan QRIS di bawah, lalu unggah bukti transfer.
+            </p>
 
-        if (!email || !pass) return alert("Email dan password wajib diisi!");
+            <div class="amount-grid">
+                <button class="amt-chip" onclick="setDepoAmount(10000)">Rp 10rb</button>
+                <button class="amt-chip" onclick="setDepoAmount(25000)">Rp 25rb</button>
+                <button class="amt-chip" onclick="setDepoAmount(50000)">Rp 50rb</button>
+                <button class="amt-chip" onclick="setDepoAmount(100000)">Rp 100rb</button>
+            </div>
 
-        try {
-            if (isRegisterMode) {
-                if (!name || !phone) return alert("Username dan Nomor HP/E-Wallet wajib diisi saat mendaftar!");
-                const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                await cred.user.updateProfile({ displayName: name });
-                await db.collection("users").doc(cred.user.uid).set({
-                    uid: cred.user.uid,
-                    email: email,
-                    displayName: name,
-                    phone: phone,
-                    balance: 0,
-                    role: "player",
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+            <div class="form-group">
+                <label>Nominal Deposit (Rp)</label>
+                <input type="number" id="depoAmountInput" value="10000" min="10000">
+            </div>
+
+            <div class="qris-card">
+                <div class="qris-badge">QRIS • SCAN UNTUK BAYAR</div>
+                <img src="1000490831.jpg" alt="QRIS Pembayaran">
+                <div style="font-size:0.72rem; color:#475569; margin-top:6px;">
+                    Mendukung semua E-Wallet & Mobile Banking berlogo QRIS[span_1](start_span)[span_1](end_span)
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Bukti Pembayaran / Transfer (Wajib Upload Foto/SS)</label>
+                <input type="file" id="depoProofInput" accept="image/*">
+            </div>
+
+            <button class="btn-main" id="depoSendBtn" style="background:linear-gradient(135deg,#16a34a,#15803d);" onclick="sendDepositRequest()">
+                Kirim Bukti Deposit
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL WITHDRAW -->
+    <div class="drawer-overlay" id="wdModal" onclick="backdropClose(event, 'wdModal')">
+        <div class="drawer-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="color:#fb923c; font-size:1.05rem;">💸 Withdraw Saldo</h3>
+                <button class="circle-btn" onclick="closeOverlay('wdModal')">✕</button>
+            </div>
+
+            <div class="form-group">
+                <label>Nominal Withdraw (Min. Rp 20.000)</label>
+                <input type="number" id="wdAmountInput" value="20000" min="20000">
+            </div>
+            <div class="form-group">
+                <label>Metode Pembayaran (DANA / OVO / GoPay / Bank)</label>
+                <input type="text" id="wdMethodInput" placeholder="Contoh: DANA">
+            </div>
+            <div class="form-group">
+                <label>Nomor Tujuan & Nama Pemilik</label>
+                <input type="text" id="wdAccountInput" placeholder="0812xxxxxxxx a/n Nama Anda">
+            </div>
+
+            <button class="btn-main" style="background:linear-gradient(135deg,#ea580c,#c2410c);" onclick="sendWithdrawRequest()">
+                Ajukan Withdraw
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzJ6p_stDYeaviIK1CapIpz_pc8onN5hM",
+            authDomain: "spaceman-sukses.firebaseapp.com",
+            projectId: "spaceman-sukses",
+            storageBucket: "spaceman-sukses.firebasestorage.app",
+            messagingSenderId: "442967300277",
+            appId: "1:442967300277:web:65b99aebdbc478455586fc"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let currentProfile = null;
+        let isRegister = true;
+        let matchesData = [];
+        let selectedPicks = [];
+        let isHistoryOpen = false;
+        let unsubUser = null;
+        let unsubMatches = null;
+
+        // ===== AUTHENTICATION =====
+        function toggleAuthMode() {
+            isRegister = !isRegister;
+            document.getElementById('registerExtra').style.display = isRegister ? 'block' : 'none';
+            document.getElementById('authTitle').innerText = isRegister ? 'Daftar Akun Pemain' : 'Login Pemain';
+            document.getElementById('authSub').innerText = isRegister
+                ? 'Daftar terlebih dahulu untuk mulai nge-pick tim & hero MLBB.'
+                : 'Masuk menggunakan akun pemain Anda.';
+            document.getElementById('authSubmitBtn').innerText = isRegister ? 'Daftar Sekarang' : 'Masuk';
+            document.getElementById('authSwitchText').innerHTML = isRegister
+                ? 'Sudah punya akun? <span onclick="toggleAuthMode()">Login di sini</span>'
+                : 'Belum punya akun? <span onclick="toggleAuthMode()">Daftar sekarang</span>';
+        }
+
+        async function submitEmailAuth() {
+            const email = document.getElementById('authEmail').value.trim();
+            const pass = document.getElementById('authPassword').value;
+            const nick = document.getElementById('regNickname').value.trim();
+            const wallet = document.getElementById('regWallet').value.trim();
+
+            if (!email || !pass) return alert("Email dan password wajib diisi.");
+
+            const btn = document.getElementById('authSubmitBtn');
+            btn.disabled = true;
+
+            try {
+                if (isRegister) {
+                    if (!nick || !wallet) {
+                        btn.disabled = false;
+                        return alert("Lengkapi Nickname dan No. HP / E-Wallet saat mendaftar.");
+                    }
+                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                    await cred.user.updateProfile({ displayName: nick });
+                    await db.collection("users").doc(cred.user.uid).set({
+                        uid: cred.user.uid,
+                        email: email,
+                        displayName: nick,
+                        phone: wallet,
+                        balance: 0,
+                        role: "player",
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan: " + err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function loginGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(err => alert("Gagal login Google: " + err.message));
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                const ref = db.collection("users").doc(user.uid);
+                const snap = await ref.get();
+                if (!snap.exists) {
+                    await ref.set({
+                        uid: user.uid,
+                        email: user.email || "",
+                        displayName: user.displayName || (user.email ? user.email.split("@")[0] : "Player"),
+                        phone: "",
+                        balance: 0,
+                        role: "player",
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                document.getElementById('authModal').classList.remove('show');
+                document.getElementById('playerApp').style.display = 'block';
+                startRealtimeListeners();
             } else {
-                await auth.signInWithEmailAndPassword(email, pass);
+                currentUser = null;
+                if (unsubUser) unsubUser();
+                if (unsubMatches) unsubMatches();
+                document.getElementById('playerApp').style.display = 'none';
+                document.getElementById('authModal').classList.add('show');
             }
-        } catch (err) {
-            alert("Gagal: " + err.message);
+        });
+
+        function logoutPlayer() {
+            if (confirm("Keluar dari akun pemain?")) auth.signOut();
         }
-    }
 
-    function loginWithGoogle() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(err => alert(err.message));
-    }
+        // ===== REALTIME PROFILE & MATCHES =====
+        function startRealtimeListeners() {
+            if (unsubUser) unsubUser();
+            if (unsubMatches) unsubMatches();
 
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user;
-            const userRef = db.collection("users").doc(user.uid);
-            const snap = await userRef.get();
-            if (!snap.exists) {
-                await userRef.set({
-                    uid: user.uid,
-                    email: user.email || "",
-                    displayName: user.displayName || user.email.split('@')[0],
-                    phone: "",
-                    balance: 0,
-                    role: "player",
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            document.getElementById('authModal').style.display = 'none';
-            document.getElementById('appContent').style.display = 'block';
-            listenUserRealtime();
-            listenMatchesRealtime();
-        } else {
-            document.getElementById('authModal').style.display = 'flex';
-            document.getElementById('appContent').style.display = 'none';
+            unsubUser = db.collection("users").doc(currentUser.uid).onSnapshot((doc) => {
+                if (doc.exists) {
+                    currentProfile = doc.data();
+                    renderBalance();
+                    document.getElementById('playerTag').innerText = "🎮 " + (currentProfile.displayName || "Pemain");
+                }
+            });
+
+            unsubMatches = db.collection("mlbb_matches").orderBy("createdAt", "desc").onSnapshot((snap) => {
+                matchesData = [];
+                snap.forEach(doc => matchesData.push({ id: doc.id, ...doc.data() }));
+                renderMatches();
+            });
         }
-    });
 
-    function logout() {
-        if (confirm("Keluar dari akun?")) auth.signOut();
-    }
+        function renderBalance() {
+            const bal = Number(currentProfile?.balance || 0);
+            document.getElementById('balanceDisplay').innerText = "Rp " + bal.toLocaleString("id-ID");
+        }
 
-    // ===== REALTIME USER & BALANCE =====
-    function listenUserRealtime() {
-        db.collection("users").doc(currentUser.uid).onSnapshot((doc) => {
+        async function refreshBalance() {
+            if (!currentUser) return;
+            const doc = await db.collection("users").doc(currentUser.uid).get();
             if (doc.exists) {
-                userData = doc.data();
-                document.getElementById('balanceDisplay').innerText = "Rp " + (userData.balance || 0).toLocaleString('id-ID');
-                document.getElementById('userGreeting').innerText = "👤 " + (userData.displayName || "Player");
+                currentProfile = doc.data();
+                renderBalance();
+                alert("Saldo terbaru: Rp " + Number(currentProfile.balance || 0).toLocaleString("id-ID"));
             }
-        });
-    }
-
-    async function refreshBalance() {
-        const doc = await db.collection("users").doc(currentUser.uid).get();
-        if (doc.exists) {
-            userData = doc.data();
-            document.getElementById('balanceDisplay').innerText = "Rp " + (userData.balance || 0).toLocaleString('id-ID');
-            alert("Saldo diperbarui: Rp " + (userData.balance || 0).toLocaleString('id-ID'));
-        }
-    }
-
-    // ===== REALTIME MLBB MATCHES =====
-    function listenMatchesRealtime() {
-        db.collection("mlbb_matches").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
-            matchesCache = [];
-            snapshot.forEach(doc => matchesCache.push({ id: doc.id, ...doc.data() }));
-            renderMatches();
-        });
-    }
-
-    function renderMatches() {
-        const container = document.getElementById('matchList');
-        const activeMatches = matchesCache.filter(m => m.status !== 'finished');
-
-        if (activeMatches.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Belum ada jadwal pertandingan aktif.</div>`;
-            return;
         }
 
-        container.innerHTML = activeMatches.map(match => {
-            const isClosed = match.status === 'closed';
-            const statusClass = match.status === 'live' ? 'status-live' : (isClosed ? 'status-closed' : 'status-upcoming');
-            const statusLabel = match.status === 'live' ? '🔴 LIVE' : (isClosed ? '🔒 PICK DITUTUP' : '🕒 UPCOMING');
+        function renderMatches() {
+            const container = document.getElementById('matchesContainer');
+            const active = matchesData.filter(m => m.status !== "finished");
 
-            const marketsHtml = (match.markets || []).map((mkt, mIdx) => {
-                const optionsHtml = (mkt.options || []).map((opt, oIdx) => {
-                    const isSelected = slipPicks.some(p => p.matchId === match.id && p.marketIdx === mIdx && p.optionIdx === oIdx);
+            if (active.length === 0) {
+                container.innerHTML = `<div class="match-card" style="text-align:center; color:var(--muted);">Belum ada jadwal pertandingan MLBB yang dibuka.</div>`;
+                return;
+            }
+
+            container.innerHTML = active.map(match => {
+                const locked = match.status === "closed";
+                const badgeClass = match.status === "live" ? "st-live" : (locked ? "st-closed" : "st-upcoming");
+                const badgeText = match.status === "live" ? "🔴 LIVE" : (locked ? "🔒 PICK DITUTUP" : "🕒 JADWAL AKTIF");
+
+                const fallbackA = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(match.teamA || "A")}`;
+                const fallbackB = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(match.teamB || "B")}`;
+
+                const marketsHtml = (match.markets || []).map((mkt, mIdx) => {
+                    const optsHtml = (mkt.options || []).map((opt, oIdx) => {
+                        const picked = selectedPicks.some(p => p.matchId === match.id && p.marketIdx === mIdx && p.optionIdx === oIdx);
+                        return `
+                            <button class="odd-btn ${picked ? "active" : ""}"
+                                ${locked ? "disabled" : ""}
+                                onclick="selectPick('${match.id}', ${mIdx}, ${oIdx})">
+                                <span class="odd-opt">${escapeHtml(opt.label)}</span>
+                                <span class="odd-mult">${Number(opt.odds || 1).toFixed(2)}x</span>
+                            </button>
+                        `;
+                    }).join("");
+
                     return `
-                        <button class="odd-btn ${isSelected ? 'selected' : ''}" 
-                                ${isClosed ? 'disabled' : ''} 
-                                onclick="togglePick('${match.id}', ${mIdx}, ${oIdx})">
-                            <span class="odd-label">${opt.label}</span>
-                            <span class="odd-val">${Number(opt.odds).toFixed(2)}x</span>
-                        </button>
+                        <div class="market-box">
+                            <div class="market-name">🎯 ${escapeHtml(mkt.title)}</div>
+                            <div class="odds-grid">${optsHtml}</div>
+                        </div>
                     `;
-                }).join('');
+                }).join("");
 
                 return `
-                    <div class="market-block">
-                        <div class="market-title">📌 ${mkt.title}</div>
-                        <div class="odds-grid">${optionsHtml}</div>
-                    </div>
+                    <article class="match-card">
+                        <div class="match-top">
+                            <span>🏆 ${escapeHtml(match.tournament || "MLBB")} • ${escapeHtml(match.schedule || "Segera")}</span>
+                            <span class="badge-status ${badgeClass}">${badgeText}</span>
+                        </div>
+
+                        <div class="vs-stage">
+                            <div class="team-col">
+                                <img class="team-avatar" src="${escapeAttr(match.teamALogo || fallbackA)}" onerror="this.src='${fallbackA}'">
+                                <div class="team-title">${escapeHtml(match.teamA)}</div>
+                            </div>
+                            <div class="vs-pill">VS</div>
+                            <div class="team-col">
+                                <img class="team-avatar" src="${escapeAttr(match.teamBLogo || fallbackB)}" onerror="this.src='${fallbackB}'">
+                                <div class="team-title">${escapeHtml(match.teamB)}</div>
+                            </div>
+                        </div>
+
+                        ${marketsHtml}
+                    </article>
                 `;
-            }).join('');
+            }).join("");
+        }
 
-            return `
-                <div class="match-card">
-                    <div class="match-meta">
-                        <span>🏆 ${match.tournament || 'MLBB Tournament'} • ${match.schedule || ''}</span>
-                        <span class="status-badge ${statusClass}">${statusLabel}</span>
-                    </div>
-                    <div class="teams-row">
-                        <div class="team-box">
-                            <img class="team-logo" src="${match.teamALogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + match.teamA}" onerror="this.src='https://api.dicebear.com/7.x/identicon/svg?seed=A'">
-                            <div class="team-name">${match.teamA}</div>
-                        </div>
-                        <div class="vs-tag">VS</div>
-                        <div class="team-box">
-                            <img class="team-logo" src="${match.teamBLogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=' + match.teamB}" onerror="this.src='https://api.dicebear.com/7.x/identicon/svg?seed=B'">
-                            <div class="team-name">${match.teamB}</div>
-                        </div>
-                    </div>
-                    ${marketsHtml}
-                </div>
-            `;
-        }).join('');
-    }
+        // ===== PARLAY SLIP =====
+        function selectPick(matchId, marketIdx, optionIdx) {
+            const match = matchesData.find(m => m.id === matchId);
+            if (!match || match.status === "closed" || match.status === "finished") return;
 
-    // ===== PARLAY SLIP LOGIC =====
-    function togglePick(matchId, marketIdx, optionIdx) {
-        const match = matchesCache.find(m => m.id === matchId);
-        if (!match || match.status === 'closed' || match.status === 'finished') return;
+            const market = match.markets[marketIdx];
+            const option = market.options[optionIdx];
+            const idxExisting = selectedPicks.findIndex(p => p.matchId === matchId && p.marketIdx === marketIdx);
 
-        const market = match.markets[marketIdx];
-        const option = market.options[optionIdx];
-
-        // Cek apakah sudah ada pick di market yang sama pada match tersebut
-        const existingIdx = slipPicks.findIndex(p => p.matchId === matchId && p.marketIdx === marketIdx);
-        if (existingIdx !== -1) {
-            if (slipPicks[existingIdx].optionIdx === optionIdx) {
-                slipPicks.splice(existingIdx, 1); // Unselect
+            if (idxExisting !== -1) {
+                if (selectedPicks[idxExisting].optionIdx === optionIdx) {
+                    selectedPicks.splice(idxExisting, 1);
+                } else {
+                    selectedPicks[idxExisting] = {
+                        matchId,
+                        matchTitle: `${match.teamA} vs ${match.teamB}`,
+                        marketIdx,
+                        marketTitle: market.title,
+                        optionIdx,
+                        optionLabel: option.label,
+                        odds: Number(option.odds || 1)
+                    };
+                }
             } else {
-                // Ganti pilihan di market yang sama
-                slipPicks[existingIdx] = {
+                selectedPicks.push({
                     matchId,
                     matchTitle: `${match.teamA} vs ${match.teamB}`,
                     marketIdx,
                     marketTitle: market.title,
                     optionIdx,
                     optionLabel: option.label,
-                    odds: Number(option.odds)
-                };
+                    odds: Number(option.odds || 1)
+                });
             }
-        } else {
-            slipPicks.push({
-                matchId,
-                matchTitle: `${match.teamA} vs ${match.teamB}`,
-                marketIdx,
-                marketTitle: market.title,
-                optionIdx,
-                optionLabel: option.label,
-                odds: Number(option.odds)
-            });
-        }
 
-        renderMatches();
-        updateSlipUI();
-    }
-
-    function updateSlipUI() {
-        const fab = document.getElementById('slipFab');
-        if (slipPicks.length === 0) {
-            fab.style.display = 'none';
-            closeModal('slipDrawer');
-            return;
-        }
-        fab.style.display = 'flex';
-        const totalOdds = slipPicks.reduce((acc, item) => acc * item.odds, 1);
-        document.getElementById('slipCount').innerText = slipPicks.length;
-        document.getElementById('slipTotalOdds').innerText = totalOdds.toFixed(2);
-        document.getElementById('drawerOdds').innerText = totalOdds.toFixed(2) + "x";
-
-        const container = document.getElementById('slipItemsContainer');
-        container.innerHTML = slipPicks.map((p, idx) => `
-            <div class="slip-item">
-                <div>
-                    <div style="font-size:0.75rem; color:#94a3b8;">${p.matchTitle}</div>
-                    <div style="font-size:0.85rem; font-weight:700;">${p.marketTitle}: <span style="color:#38bdf8;">${p.optionLabel}</span></div>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <strong style="color:#fbbf24;">${p.odds.toFixed(2)}x</strong>
-                    <button class="remove-pick" onclick="removePick(${idx})">✕</button>
-                </div>
-            </div>
-        `).join('');
-
-        calcPotentialWin();
-    }
-
-    function removePick(idx) {
-        slipPicks.splice(idx, 1);
-        renderMatches();
-        updateSlipUI();
-    }
-
-    function calcPotentialWin() {
-        const bet = Number(document.getElementById('betAmount').value) || 0;
-        const totalOdds = slipPicks.reduce((acc, item) => acc * item.odds, 1);
-        const win = Math.floor(bet * totalOdds);
-        document.getElementById('potentialWin').innerText = "Rp " + win.toLocaleString('id-ID');
-    }
-
-    async function placeParlayBet() {
-        if (slipPicks.length === 0) return;
-        const bet = Number(document.getElementById('betAmount').value);
-        if (bet < 5000) return alert("Minimal pasang Rp 5.000!");
-        if ((userData.balance || 0) < bet) return alert("Saldo tidak mencukupi! Silakan Deposit terlebih dahulu.");
-
-        const totalOdds = slipPicks.reduce((acc, item) => acc * item.odds, 1);
-        const potentialWin = Math.floor(bet * totalOdds);
-
-        try {
-            // Potong saldo user & simpan tiket parlay
-            await db.collection("users").doc(currentUser.uid).update({
-                balance: firebase.firestore.FieldValue.increment(-bet)
-            });
-
-            await db.collection("parlay_tickets").add({
-                uid: currentUser.uid,
-                userName: userData.displayName || userData.email,
-                picks: slipPicks,
-                stake: bet,
-                totalOdds: Number(totalOdds.toFixed(2)),
-                potentialWin: potentialWin,
-                status: "pending", // pending | win | lose
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            slipPicks = [];
             renderMatches();
-            updateSlipUI();
-            alert("Berhasil memasang Parlay! Semoga menang!");
-        } catch (err) {
-            alert("Gagal memasang tiket: " + err.message);
+            renderSlip();
         }
-    }
 
-    // ===== DEPOSIT QRIS & UPLOAD BUKTI =====
-    function setDepo(val) {
-        document.getElementById('depoAmount').value = val;
-    }
+        function renderSlip() {
+            const bar = document.getElementById('slipBar');
+            if (selectedPicks.length === 0) {
+                bar.classList.remove('show');
+                closeOverlay('slipDrawer');
+                return;
+            }
 
-    function compressImageToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const maxW = 550;
-                    const scale = maxW / img.width;
-                    canvas.width = maxW;
-                    canvas.height = img.height * scale;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.65));
+            bar.classList.add('show');
+            const totalOdds = selectedPicks.reduce((acc, p) => acc * p.odds, 1);
+
+            document.getElementById('slipCount').innerText = selectedPicks.length;
+            document.getElementById('slipOdds').innerText = totalOdds.toFixed(2);
+            document.getElementById('drawerTotalOdds').innerText = totalOdds.toFixed(2) + "x";
+
+            document.getElementById('slipList').innerHTML = selectedPicks.map((p, i) => `
+                <div class="slip-row">
+                    <div>
+                        <div style="font-size:0.72rem; color:var(--muted);">${escapeHtml(p.matchTitle)}</div>
+                        <div style="font-size:0.84rem; font-weight:700;">
+                            ${escapeHtml(p.marketTitle)}: <span style="color:var(--accent);">${escapeHtml(p.optionLabel)}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <strong style="color:var(--gold); font-size:0.88rem;">${p.odds.toFixed(2)}x</strong>
+                        <button class="btn-del" onclick="removeSlipItem(${i})">✕</button>
+                    </div>
+                </div>
+            `).join("");
+
+            updatePotentialWin();
+        }
+
+        function removeSlipItem(index) {
+            selectedPicks.splice(index, 1);
+            renderMatches();
+            renderSlip();
+        }
+
+        function updatePotentialWin() {
+            const stake = Number(document.getElementById('betInput').value) || 0;
+            const totalOdds = selectedPicks.reduce((acc, p) => acc * p.odds, 1);
+            const est = Math.floor(stake * totalOdds);
+            document.getElementById('potentialWinDisplay').innerText = "Rp " + est.toLocaleString("id-ID");
+        }
+
+        async function submitParlayTicket() {
+            if (selectedPicks.length === 0) return;
+            const stake = Number(document.getElementById('betInput').value);
+            const bal = Number(currentProfile?.balance || 0);
+
+            if (stake < 5000) return alert("Minimal pasang tiket adalah Rp 5.000.");
+            if (bal < stake) return alert("Saldo tidak mencukupi. Silakan Deposit terlebih dahulu.");
+
+            const totalOdds = Number(selectedPicks.reduce((acc, p) => acc * p.odds, 1).toFixed(2));
+            const potentialWin = Math.floor(stake * totalOdds);
+
+            try {
+                await db.collection("users").doc(currentUser.uid).update({
+                    balance: firebase.firestore.FieldValue.increment(-stake)
+                });
+
+                await db.collection("parlay_tickets").add({
+                    uid: currentUser.uid,
+                    userName: currentProfile?.displayName || currentUser.email,
+                    picks: selectedPicks,
+                    stake: stake,
+                    totalOdds: totalOdds,
+                    potentialWin: potentialWin,
+                    status: "pending",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                selectedPicks = [];
+                renderMatches();
+                renderSlip();
+                alert("Tiket berhasil dipasang! Menunggu hasil pertandingan dari admin.");
+            } catch (err) {
+                alert("Gagal memasang tiket: " + err.message);
+            }
+        }
+
+        // ===== DEPOSIT QRIS & WITHDRAW =====
+        function setDepoAmount(val) {
+            document.getElementById('depoAmountInput').value = val;
+        }
+
+        function compressProofImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        const maxWidth = 560;
+                        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        const ctx = canvas.getContext("2d");
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL("image/jpeg", 0.65));
+                    };
+                    img.src = e.target.result;
                 };
-                img.src = e.target.result;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    async function submitDeposit() {
-        const amount = Number(document.getElementById('depoAmount').value);
-        const fileInput = document.getElementById('depoProof');
-
-        if (amount < 10000) return alert("Minimal deposit adalah Rp 10.000!");
-        if (!fileInput.files || !fileInput.files[0]) return alert("Harap unggah foto/screenshot bukti transfer QRIS!");
-
-        const btn = document.getElementById('btnSubmitDepo');
-        btn.disabled = true;
-        btn.innerText = "Mengunggah bukti...";
-
-        try {
-            const proofBase64 = await compressImageToBase64(fileInput.files[0]);
-            await db.collection("transactions").add({
-                type: "deposit",
-                uid: currentUser.uid,
-                userName: userData.displayName || userData.email,
-                amount: amount,
-                proofImage: proofBase64,
-                status: "pending", // pending | approved | rejected
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
             });
-
-            fileInput.value = "";
-            closeModal('depoModal');
-            alert("Bukti deposit berhasil dikirim! Tunggu admin mengecek & memasukkan saldo Anda.");
-        } catch (err) {
-            alert("Gagal mengirim deposit: " + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Kirim Bukti Deposit";
-        }
-    }
-
-    // ===== WITHDRAW =====
-    async function submitWithdraw() {
-        const amount = Number(document.getElementById('wdAmount').value);
-        const method = document.getElementById('wdMethod').value.trim();
-        const account = document.getElementById('wdAccount').value.trim();
-
-        if (amount < 20000) return alert("Minimal withdraw Rp 20.000!");
-        if (!method || !account) return alert("Isi metode dan nomor rekening/e-wallet tujuan!");
-        if ((userData.balance || 0) < amount) return alert("Saldo Anda tidak cukup!");
-
-        try {
-            await db.collection("users").doc(currentUser.uid).update({
-                balance: firebase.firestore.FieldValue.increment(-amount)
-            });
-
-            await db.collection("transactions").add({
-                type: "withdraw",
-                uid: currentUser.uid,
-                userName: userData.displayName || userData.email,
-                amount: amount,
-                method: method,
-                account: account,
-                status: "pending",
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            closeModal('wdModal');
-            alert("Pengajuan Withdraw berhasil dikirim ke Admin!");
-        } catch (err) {
-            alert("Gagal mengajukan withdraw: " + err.message);
-        }
-    }
-
-    // ===== NAVIGATION & HISTORY =====
-    let showingHistory = false;
-    function switchTab() {
-        showingHistory = !showingHistory;
-        document.getElementById('matchesSection').style.display = showingHistory ? 'none' : 'block';
-        document.getElementById('historySection').style.display = showingHistory ? 'block' : 'none';
-        if (showingHistory) loadHistory();
-    }
-
-    async function loadHistory() {
-        const container = document.getElementById('ticketList');
-        container.innerHTML = "Memuat riwayat...";
-
-        const snap = await db.collection("parlay_tickets")
-            .where("uid", "==", currentUser.uid)
-            .get();
-
-        let tickets = [];
-        snap.forEach(doc => tickets.push({ id: doc.id, ...doc.data() }));
-        tickets.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-
-        if (tickets.length === 0) {
-            container.innerHTML = "<p style='color:#64748b; text-align:center;'>Belum ada riwayat tiket parlay.</p>";
-            return;
         }
 
-        container.innerHTML = tickets.map(t => {
-            const statusBadge = t.status === 'win' 
-                ? `<span class="badge-win">✅ MENANG (+Rp ${t.potentialWin.toLocaleString('id-ID')})</span>`
-                : (t.status === 'lose' ? `<span class="badge-lose">❌ KALAH</span>` : `<span class="badge-pending">⏳ MENUNGGU HASIL</span>`);
+        async function sendDepositRequest() {
+            const amount = Number(document.getElementById('depoAmountInput').value);
+            const fileEl = document.getElementById('depoProofInput');
 
-            const picksHtml = t.picks.map(p => `
-                <div style="padding:4px 0; border-bottom:1px dashed #1e293b; font-size:0.8rem;">
-                    • ${p.matchTitle} — <strong>${p.marketTitle}: ${p.optionLabel}</strong> (${p.odds}x)
-                </div>
-            `).join('');
+            if (amount < 10000) return alert("Minimal deposit adalah Rp 10.000.");
+            if (!fileEl.files || !fileEl.files[0]) return alert("Harap upload bukti pembayaran QRIS terlebih dahulu.");
 
-            return `
-                <div class="ticket-card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <span>Pasang: <strong>Rp ${t.stake.toLocaleString('id-ID')}</strong> (${t.totalOdds}x)</span>
-                        ${statusBadge}
+            const btn = document.getElementById('depoSendBtn');
+            btn.disabled = true;
+            btn.innerText = "Mengirim bukti...";
+
+            try {
+                const proofBase64 = await compressProofImage(fileEl.files[0]);
+                await db.collection("transactions").add({
+                    type: "deposit",
+                    uid: currentUser.uid,
+                    userName: currentProfile?.displayName || currentUser.email,
+                    amount: amount,
+                    proofImage: proofBase64,
+                    status: "pending",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                fileEl.value = "";
+                closeOverlay('depoModal');
+                alert("Bukti transfer QRIS terkirim! Tunggu admin memverifikasi & mengisi saldo Anda.");
+            } catch (err) {
+                alert("Gagal mengirim deposit: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Kirim Bukti Deposit";
+            }
+        }
+
+        async function sendWithdrawRequest() {
+            const amount = Number(document.getElementById('wdAmountInput').value);
+            const method = document.getElementById('wdMethodInput').value.trim();
+            const account = document.getElementById('wdAccountInput').value.trim();
+            const bal = Number(currentProfile?.balance || 0);
+
+            if (amount < 20000) return alert("Minimal withdraw adalah Rp 20.000.");
+            if (!method || !account) return alert("Lengkapi metode dan nomor tujuan withdraw.");
+            if (bal < amount) return alert("Saldo Anda tidak cukup untuk withdraw nominal tersebut.");
+
+            try {
+                await db.collection("users").doc(currentUser.uid).update({
+                    balance: firebase.firestore.FieldValue.increment(-amount)
+                });
+
+                await db.collection("transactions").add({
+                    type: "withdraw",
+                    uid: currentUser.uid,
+                    userName: currentProfile?.displayName || currentUser.email,
+                    amount: amount,
+                    method: method,
+                    account: account,
+                    status: "pending",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                closeOverlay('wdModal');
+                alert("Permintaan withdraw berhasil dikirim ke admin.");
+            } catch (err) {
+                alert("Gagal mengajukan withdraw: " + err.message);
+            }
+        }
+
+        // ===== HISTORY =====
+        function toggleHistoryView() {
+            isHistoryOpen = !isHistoryOpen;
+            document.getElementById('matchesView').style.display = isHistoryOpen ? 'none' : 'block';
+            document.getElementById('historyView').style.display = isHistoryOpen ? 'block' : 'none';
+            if (isHistoryOpen) loadTicketHistory();
+        }
+
+        async function loadTicketHistory() {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = `<div style="text-align:center; color:var(--muted); padding:20px;">Memuat riwayat tiket...</div>`;
+
+            const snap = await db.collection("parlay_tickets").where("uid", "==", currentUser.uid).get();
+            const list = [];
+            snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+            list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="history-card" style="text-align:center; color:var(--muted);">Belum ada tiket parlay yang dipasang.</div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(t => {
+                const stHtml = t.status === "win"
+                    ? `<span class="t-win">MENANG (+Rp ${Number(t.potentialWin).toLocaleString("id-ID")})</span>`
+                    : (t.status === "lose" ? `<span class="t-lose">KALAH</span>` : `<span class="t-pending">MENUNGGU</span>`);
+
+                const picksHtml = (t.picks || []).map(p => `
+                    <div style="font-size:0.78rem; padding:4px 0; border-bottom:1px dashed var(--border);">
+                        • ${escapeHtml(p.matchTitle)} — <strong>${escapeHtml(p.marketTitle)}: ${escapeHtml(p.optionLabel)}</strong> (${Number(p.odds).toFixed(2)}x)
                     </div>
-                    ${picksHtml}
-                    <div style="margin-top:6px; font-size:0.8rem; color:#94a3b8;">
-                        Potensi Kemenangan: <strong style="color:#4ade80;">Rp ${t.potentialWin.toLocaleString('id-ID')}</strong>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
+                `).join("");
 
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-</script>
+                return `
+                    <div class="history-card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.84rem;">
+                            <span>Pasang: <strong>Rp ${Number(t.stake).toLocaleString("id-ID")}</strong> (${Number(t.totalOdds).toFixed(2)}x)</span>
+                            ${stHtml}
+                        </div>
+                        ${picksHtml}
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ===== HELPERS =====
+        function openOverlay(id) { document.getElementById(id).classList.add('show'); }
+        function closeOverlay(id) { document.getElementById(id).classList.remove('show'); }
+        function backdropClose(e, id) { if (e.target.id === id) closeOverlay(id); }
+
+        function escapeHtml(str) {
+            return String(str ?? "").replace(/[&<>"']/g, m => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            }[m]));
+        }
+        function escapeAttr(str) {
+            return escapeHtml(str).replace(/`/g, "&#96;");
+        }
+    </script>
 </body>
 </html>
